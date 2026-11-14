@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -13,7 +14,7 @@ import base64
 # Silakan isi link Google Form Bapak/Ibu di antara tanda kutip di bawah ini.
 # Contoh: LINK_PENGUMPULAN = "https://forms.gle/xxxxxx"
 # ============================================================
-LINK_PENGUMPULAN = "https://forms.gle/2w9YxHCiUoHpVutC7"
+LINK_PENGUMPULAN = ""
 
 # ============================================================
 # KONFIGURASI HALAMAN
@@ -116,6 +117,108 @@ else:
         .quiz-salah { background: #ffebee; border: 2px solid #f44336; padding: 1rem; border-radius: 8px; color: #c62828; }
     </style>
     """, unsafe_allow_html=True)
+
+# ============================================================
+# FUNGSI PRATINJAU PDF ANTI-BLOKIR CHROME & SUPORT HP
+# ============================================================
+def tampilkan_pratinjau_pdf(isi_bytes):
+    base64_pdf = base64.b64encode(isi_bytes).decode('utf-8')
+    pdf_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{
+                margin: 0;
+                padding: 15px;
+                background-color: #525659;
+                font-family: Arial, sans-serif;
+                text-align: center;
+            }}
+            #loading-msg {{
+                color: #ffffff;
+                font-size: 14px;
+                padding: 20px;
+            }}
+            .page-label {{
+                color: #f0f0f0;
+                font-size: 13px;
+                margin: 8px 0 6px 0;
+            }}
+            canvas {{
+                display: block;
+                margin: 0 auto 20px auto;
+                max-width: 100%;
+                height: auto !important;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+                border-radius: 6px;
+                background-color: #ffffff;
+            }}
+        </style>
+    </head>
+    <body>
+        <div id="loading-msg">⏳ Memuat pratinjau dokumen LKPD...</div>
+        <div id="pdf-container"></div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+        <script>
+            const pdfjsLib = window['pdfjs-dist/build/pdf'];
+            try {{
+                const blob = new Blob([
+                    "importScripts('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js');"
+                ], {{ type: 'application/javascript' }});
+                pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(blob);
+            }} catch (e) {{
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            }}
+
+            const raw = atob("{base64_pdf}");
+            const uint8Array = new Uint8Array(raw.length);
+            for (let i = 0; i < raw.length; i++) {{
+                uint8Array[i] = raw.charCodeAt(i);
+            }}
+
+            async function renderPDF() {{
+                try {{
+                    const loadingTask = pdfjsLib.getDocument({{ data: uint8Array }});
+                    const pdf = await loadingTask.promise;
+                    const container = document.getElementById('pdf-container');
+                    const loadingMsg = document.getElementById('loading-msg');
+                    loadingMsg.innerText = '⏳ Menampilkan ' + pdf.numPages + ' halaman...';
+
+                    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {{
+                        const page = await pdf.getPage(pageNum);
+                        const scale = 1.6;
+                        const viewport = page.getViewport({{ scale: scale }});
+
+                        const label = document.createElement('div');
+                        label.className = 'page-label';
+                        label.innerText = 'Halaman ' + pageNum + ' dari ' + pdf.numPages;
+                        container.appendChild(label);
+
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        container.appendChild(canvas);
+
+                        await page.render({{
+                            canvasContext: context,
+                            viewport: viewport
+                        }}).promise;
+                    }}
+                    loadingMsg.style.display = 'none';
+                }} catch (err) {{
+                    document.getElementById('loading-msg').innerText = '⚠️ Gagal memuat pratinjau: ' + err.message + '. Silakan gunakan tombol Download LKPD di atas.';
+                }}
+            }}
+            renderPDF();
+        </script>
+    </body>
+    </html>
+    """
+    components.html(pdf_html, height=650, scrolling=True)
 
 # ============================================================
 # FUNGSI STATISTIKA
@@ -237,7 +340,7 @@ if halaman == "🏠 Beranda":
         st.markdown("""
         <div class="metric-card">
             <h3>📄 LKPD</h3>
-            <p>Unduh Lembar Kerja Peserta Didik untuk diskusi kelompok & kumpulkan tugas.</p>
+            <p>Baca & unduh Lembar Kerja Peserta Didik serta kumpulkan tugas.</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -262,7 +365,7 @@ if halaman == "🏠 Beranda":
     st.markdown("""
     1. 👈 Buka **panel kiri** (klik tanda `>>` di pojok kiri atas jika memakai HP)
     2. 📖 Pilih **Materi** untuk mempelajari konsep dan rumus
-    3. 📄 Pilih **LKPD** untuk mengunduh lembar kerja kelompok
+    3. 📄 Pilih **LKPD** untuk melihat & mengunduh lembar kerja
     4. 🧮 Pilih **Kalkulator** untuk simulasi perhitungan & grafik
     5. 📝 Pilih **Quiz** untuk menguji pemahaman mandiri
     """)
@@ -357,7 +460,7 @@ elif halaman == "📖 Materi":
         """, unsafe_allow_html=True)
 
 # ============================================================
-# HALAMAN LKPD (BARU!)
+# HALAMAN LKPD
 # ============================================================
 elif halaman == "📄 LKPD":
     st.markdown("""
@@ -370,23 +473,22 @@ elif halaman == "📄 LKPD":
     st.markdown("""
     <div class="materi-box">
         <b>📋 Petunjuk Pengerjaan LKPD:</b><br>
-        1. Unduh file LKPD yang tersedia di bawah ini.<br>
-        2. Kerjakan secara berkelompok/mandiri sesuai instruksi Bapak/Ibu Guru.<br>
-        3. Gunakan menu <b>🧮 Kalkulator</b> untuk memverifikasi hasil perhitungan kelompokmu.<br>
-        4. Kumpulkan hasil pekerjaan melalui tombol pengumpulan tugas yang tersedia.
+        1. Baca pratinjau LKPD di layar atau unduh filenya melalui tombol <b>Download LKPD</b>.<br>
+        2. Kerjakan secara mandiri/berkelompok sesuai instruksi Bapak/Ibu Guru.<br>
+        3. Gunakan menu <b>🧮 Kalkulator</b> untuk memverifikasi hasil perhitunganmu.<br>
+        4. Kumpulkan hasil pekerjaan sesuai arahan Guru.
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("### 📥 Daftar File LKPD")
 
-    # Deteksi otomatis semua file PDF atau Word di folder GitHub
     daftar_lkpd = sorted([
         f for f in os.listdir(".")
         if f.lower().endswith((".pdf", ".docx", ".doc"))
     ])
 
     if not daftar_lkpd:
-        st.info("ℹ️ Belum ada file LKPD yang diunggah. (Bapak/Ibu Guru dapat mengunggah file .pdf atau .docx ke repositori GitHub agar otomatis tampil di sini).")
+        st.info("ℹ️ Belum ada file LKPD yang diunggah ke repositori GitHub.")
     else:
         for idx, nama_file in enumerate(daftar_lkpd):
             with open(nama_file, "rb") as file_data:
@@ -408,15 +510,11 @@ elif halaman == "📄 LKPD":
                     type="primary"
                 )
 
-            # Tampilkan pratinjau langsung jika formatnya PDF
             if nama_file.lower().endswith(".pdf"):
-                with st.expander(f"👁️ Lihat Pratinjau {nama_file} di Layar"):
-                    base64_pdf = base64.b64encode(isi_bytes).decode('utf-8')
-                    pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="650" type="application/pdf"></iframe>'
-                    st.markdown(pdf_display, unsafe_allow_html=True)
+                with st.expander(f"👁️ Lihat Pratinjau {nama_file} di Layar", expanded=True):
+                    tampilkan_pratinjau_pdf(isi_bytes)
             st.markdown("---")
 
-    # Bagian Pengumpulan Tugas Siswa
     if LINK_PENGUMPULAN.strip():
         st.markdown("### 📤 Pengumpulan Hasil Kerja Siswa")
         st.markdown("Sudah selesai mengerjakan LKPD? Silakan kirim hasil pekerjaanmu melalui tombol di bawah ini:")
