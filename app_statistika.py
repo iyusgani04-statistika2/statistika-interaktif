@@ -5,6 +5,15 @@ import plotly.express as px
 import plotly.graph_objects as go
 import math
 import random
+import os
+import base64
+
+# ============================================================
+# PENGATURAN LINK PENGUMPULAN TUGAS SISWA (GOOGLE FORM / DRIVE)
+# Silakan isi link Google Form Bapak/Ibu di antara tanda kutip di bawah ini.
+# Contoh: LINK_PENGUMPULAN = "https://forms.gle/xxxxxx"
+# ============================================================
+LINK_PENGUMPULAN = ""
 
 # ============================================================
 # KONFIGURASI HALAMAN
@@ -44,7 +53,7 @@ if st.session_state.dark_mode:
         .metric-card {
             background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
             padding: 1.5rem; border-radius: 12px; text-align: center;
-            border-left: 5px solid #e94560; color: #e0e0e0;
+            border-left: 5px solid #e94560; color: #e0e0e0; margin-bottom: 1rem;
         }
         .metric-card h3 { color: #e0e0e0; }
         .metric-card .value { font-size: 2rem; font-weight: bold; color: #e94560; }
@@ -82,7 +91,7 @@ else:
         .metric-card {
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             padding: 1.5rem; border-radius: 12px; text-align: center;
-            border-left: 5px solid #667eea;
+            border-left: 5px solid #667eea; margin-bottom: 1rem;
         }
         .metric-card h3 { color: #333; }
         .metric-card .value { font-size: 2rem; font-weight: bold; color: #667eea; }
@@ -180,17 +189,15 @@ with st.sidebar:
     st.markdown("## 📊 Statistika Interaktif")
     st.markdown("---")
 
-    # Dark Mode Toggle
     if st.toggle("🌙 Dark Mode", value=st.session_state.dark_mode):
         st.session_state.dark_mode = True
     else:
         st.session_state.dark_mode = False
     st.markdown("---")
 
-    # Navigasi Halaman
     halaman = st.radio(
         "📌 Pilih Halaman:",
-        ["🏠 Beranda", "📖 Materi", "🧮 Kalkulator", "📝 Quiz"],
+        ["🏠 Beranda", "📖 Materi", "📄 LKPD", "🧮 Kalkulator", "📝 Quiz"],
         index=0
     )
     st.markdown("---")
@@ -229,12 +236,20 @@ if halaman == "🏠 Beranda":
     with col2:
         st.markdown("""
         <div class="metric-card">
-            <h3>🧮 Kalkulator</h3>
-            <p>Hitung rata-rata, modus, dan median secara otomatis dengan tabel lengkap.</p>
+            <h3>📄 LKPD</h3>
+            <p>Unduh Lembar Kerja Peserta Didik untuk diskusi kelompok & kumpulkan tugas.</p>
         </div>
         """, unsafe_allow_html=True)
 
     with col3:
+        st.markdown("""
+        <div class="metric-card">
+            <h3>🧮 Kalkulator</h3>
+            <p>Hitung rata-rata, modus, median, dan grafik secara otomatis.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col4:
         st.markdown("""
         <div class="metric-card">
             <h3>📝 Quiz</h3>
@@ -242,22 +257,14 @@ if halaman == "🏠 Beranda":
         </div>
         """, unsafe_allow_html=True)
 
-    with col4:
-        st.markdown("""
-        <div class="metric-card">
-            <h3>📊 Grafik</h3>
-            <p>Visualisasi histogram, ogive, dan perbandingan nilai pemusatan.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
     st.markdown("---")
     st.markdown("### 🚀 Cara Memulai")
     st.markdown("""
-    1. 👈 Buka **panel kiri** (sidebar)
-    2. 📖 Pilih **Materi** untuk belajar teori
-    3. 🧮 Pilih **Kalkulator** untuk menghitung data
-    4. 📝 Pilih **Quiz** untuk menguji pemahaman
-    5. 🌙 Aktifkan **Dark Mode** jika ingin tampilan gelap
+    1. 👈 Buka **panel kiri** (klik tanda `>>` di pojok kiri atas jika memakai HP)
+    2. 📖 Pilih **Materi** untuk mempelajari konsep dan rumus
+    3. 📄 Pilih **LKPD** untuk mengunduh lembar kerja kelompok
+    4. 🧮 Pilih **Kalkulator** untuk simulasi perhitungan & grafik
+    5. 📝 Pilih **Quiz** untuk menguji pemahaman mandiri
     """)
 
 # ============================================================
@@ -275,32 +282,19 @@ elif halaman == "📖 Materi":
         "📌 Pengantar", "📈 Rata-rata", "🏔️ Modus", "📏 Median"
     ])
 
-    # --- Pengantar ---
     with materi_tab1:
         st.markdown("### Apa itu Data Kelompok?")
         st.markdown("""
         <div class="materi-box">
         <b>Data kelompok</b> adalah data yang disajikan dalam bentuk
-        <b>kelas-kelas interval</b>, bukan data individual satu per satu.
-        <br><br>
-        <b>Contoh Data Tunggal:</b> 45, 50, 55, 60, 65, 70, 75
-        <br>
-        <b>Contoh Data Kelompok:</b>
-        <br>
-        | Kelas | Frekuensi |
-        |-------|-----------|
-        | 45 - 54 | 3 |
-        | 55 - 64 | 5 |
-        | 65 - 74 | 4 |
-        <br><br>
-        Data kelompok digunakan ketika jumlah data sangat banyak sehingga
+        <b>kelas-kelas interval</b>, bukan data individual satu per satu.<br><br>
+        Data kelompok digunakan ketika jumlah data cukup banyak sehingga
         lebih praktis disajikan dalam bentuk tabel distribusi frekuensi.
         </div>
         """, unsafe_allow_html=True)
 
         st.markdown("### Istilah Penting")
         st.markdown("""
-        <div class="materi-box">
         | Istilah | Simbol | Keterangan |
         |---------|--------|------------|
         | Frekuensi | fi | Banyaknya data dalam setiap kelas |
@@ -309,135 +303,124 @@ elif halaman == "📖 Materi":
         | Tepi Atas | Ta | Batas atas + 0.5 |
         | Panjang Kelas | p | Selisih tepi atas dan tepi bawah |
         | Frekuensi Kumulatif | Fk | Jumlah frekuensi dari kelas pertama sampai kelas tertentu |
-        </div>
-        """, unsafe_allow_html=True)
+        """)
 
         st.markdown("### Aturan Sturges")
         st.markdown("""
         <div class="materi-box">
-        Untuk menentukan <b>jumlah kelas</b>, digunakan rumus:
-        <br><br>
-        <b>k = 1 + 3,322 × log(n)</b>
-        <br><br>
-        Dimana <b>n</b> = jumlah data.
-        <br><br>
+        Untuk menentukan <b>jumlah kelas</b>, digunakan rumus:<br><br>
+        <b>k = 1 + 3,322 × log(n)</b><br><br>
+        Dimana <b>n</b> = jumlah data.<br>
         <b>Contoh:</b> Jika n = 30, maka k = 1 + 3,322 × log(30) = 1 + 4,91 = 5,91 ≈ 6 kelas
         </div>
         """, unsafe_allow_html=True)
 
-    # --- Rata-rata ---
     with materi_tab2:
         st.markdown("### 📈 Rata-rata (Mean) Data Kelompok")
-        st.markdown("""
-        <div class="materi-box">
-        <b>Rata-rata</b> adalah nilai yang mewakili keseluruhan data.
-        Untuk data kelompok, rata-rata dihitung menggunakan <b>titik tengah</b>
-        setiap kelas karena nilai asli data tidak diketahui.
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("#### Rumus:")
         st.markdown('<div class="formula-box">x̄ = Σ(fi × xi) / Σfi</div>', unsafe_allow_html=True)
-
-        st.markdown("#### Langkah-langkah:")
         st.markdown("""
         <div class="materi-box">
-        <b>Langkah 1:</b> Tentukan titik tengah (xi) setiap kelas<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;xi = (batas bawah + batas atas) / 2<br><br>
-        <b>Langkah 2:</b> Kalikan frekuensi dengan titik tengah (fi × xi)<br><br>
-        <b>Langkah 3:</b> Jumlahkan semua fi × xi → Σ(fi × xi)<br><br>
-        <b>Langkah 4:</b> Jumlahkan semua frekuensi → Σfi<br><br>
-        <b>Langkah 5:</b> Bagi Σ(fi × xi) dengan Σfi
+        <b>Langkah-langkah:</b><br>
+        1. Tentukan titik tengah (xi) setiap kelas: xi = (batas bawah + batas atas) / 2<br>
+        2. Kalikan frekuensi dengan titik tengah (fi × xi)<br>
+        3. Jumlahkan semua fi × xi → Σ(fi × xi)<br>
+        4. Bagi Σ(fi × xi) dengan total frekuensi (Σfi)
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("#### Contoh Perhitungan:")
-        st.markdown("""
-        <div class="step-box">
-        | Kelas | fi | xi | fi × xi |
-        |-------|----|----|---------|
-        | 45-54 | 3 | 49.5 | 148.5 |
-        | 55-64 | 5 | 59.5 | 297.5 |
-        | 65-74 | 4 | 69.5 | 278.0 |
-        | <b>Total</b> | <b>12</b> | | <b>724.0</b> |
-        <br>
-        x̄ = 724.0 / 12 = <b>60.33</b>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # --- Modus ---
     with materi_tab3:
         st.markdown("### 🏔️ Modus Data Kelompok")
-        st.markdown("""
-        <div class="materi-box">
-        <b>Modus</b> adalah nilai yang <b>paling sering muncul</b>.
-        Pada data kelompok, modus terletak di kelas dengan
-        <b>frekuensi tertinggi</b> (disebut <b>kelas modus</b>).
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("#### Rumus:")
         st.markdown('<div class="formula-box">Mo = Tb + p × (d1 / (d1 + d2))</div>', unsafe_allow_html=True)
-
-        st.markdown("#### Keterangan:")
         st.markdown("""
         <div class="materi-box">
-        | Simbol | Keterangan |
-        |--------|------------|
-        | <b>Tb</b> | Tepi bawah kelas modus |
-        | <b>p</b> | Panjang kelas |
-        | <b>d1</b> | Selisih frekuensi kelas modus dengan kelas <b>sebelumnya</b> |
-        | <b>d2</b> | Selisih frekuensi kelas modus dengan kelas <b>sesudahnya</b> |
+        <b>Keterangan:</b><br>
+        • <b>Tb</b> = Tepi bawah kelas modus (kelas dengan frekuensi paling tinggi)<br>
+        • <b>p</b> = Panjang kelas<br>
+        • <b>d1</b> = Selisih frekuensi kelas modus dengan kelas <b>sebelumnya</b><br>
+        • <b>d2</b> = Selisih frekuensi kelas modus dengan kelas <b>sesudahnya</b>
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("#### Langkah-langkah:")
-        st.markdown("""
-        <div class="materi-box">
-        <b>Langkah 1:</b> Cari kelas dengan frekuensi tertinggi (kelas modus)<br><br>
-        <b>Langkah 2:</b> Tentukan Tb (tepi bawah kelas modus)<br><br>
-        <b>Langkah 3:</b> Hitung d1 = fi modus - fi kelas sebelumnya<br><br>
-        <b>Langkah 4:</b> Hitung d2 = fi modus - fi kelas sesudahnya<br><br>
-        <b>Langkah 5:</b> Masukkan ke rumus
-        </div>
-        """, unsafe_allow_html=True)
-
-    # --- Median ---
     with materi_tab4:
         st.markdown("### 📏 Median Data Kelompok")
-        st.markdown("""
-        <div class="materi-box">
-        <b>Median</b> adalah nilai <b>tengah</b> dari data yang telah diurutkan.
-        Pada data kelompok, median terletak di kelas yang memuat
-        data ke-<b>½n</b> (setengah dari jumlah data).
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("#### Rumus:")
         st.markdown('<div class="formula-box">Me = Tb + p × ((½n - Fk) / fi)</div>', unsafe_allow_html=True)
-
-        st.markdown("#### Keterangan:")
         st.markdown("""
         <div class="materi-box">
-        | Simbol | Keterangan |
-        |--------|------------|
-        | <b>Tb</b> | Tepi bawah kelas median |
-        | <b>p</b> | Panjang kelas |
-        | <b>n</b> | Jumlah total data |
-        | <b>Fk</b> | Frekuensi kumulatif <b>sebelum</b> kelas median |
-        | <b>fi</b> | Frekuensi kelas median |
+        <b>Keterangan:</b><br>
+        • <b>½n</b> = Setengah dari jumlah total data<br>
+        • <b>Kelas Median</b> = Kelas pertama yang nilai Fk-nya ≥ ½n<br>
+        • <b>Tb</b> = Tepi bawah kelas median<br>
+        • <b>p</b> = Panjang kelas<br>
+        • <b>Fk</b> = Frekuensi kumulatif <b>sebelum</b> kelas median<br>
+        • <b>fi</b> = Frekuensi pada kelas median
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("#### Langkah-langkah:")
-        st.markdown("""
-        <div class="materi-box">
-        <b>Langkah 1:</b> Hitung ½n (setengah jumlah data)<br><br>
-        <b>Langkah 2:</b> Cari kelas pertama yang Fk-nya ≥ ½n (kelas median)<br><br>
-        <b>Langkah 3:</b> Tentukan Tb, Fk (sebelum kelas median), dan fi<br><br>
-        <b>Langkah 4:</b> Masukkan ke rumus
-        </div>
-        """, unsafe_allow_html=True)
+# ============================================================
+# HALAMAN LKPD (BARU!)
+# ============================================================
+elif halaman == "📄 LKPD":
+    st.markdown("""
+    <div class="main-header">
+        <h1>📄 Lembar Kerja Peserta Didik (LKPD)</h1>
+        <p>Kegiatan Diskusi & Penugasan Pemusatan Data Kelompok</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="materi-box">
+        <b>📋 Petunjuk Pengerjaan LKPD:</b><br>
+        1. Unduh file LKPD yang tersedia di bawah ini.<br>
+        2. Kerjakan secara berkelompok/mandiri sesuai instruksi Bapak/Ibu Guru.<br>
+        3. Gunakan menu <b>🧮 Kalkulator</b> untuk memverifikasi hasil perhitungan kelompokmu.<br>
+        4. Kumpulkan hasil pekerjaan melalui tombol pengumpulan tugas yang tersedia.
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### 📥 Daftar File LKPD")
+
+    # Deteksi otomatis semua file PDF atau Word di folder GitHub
+    daftar_lkpd = sorted([
+        f for f in os.listdir(".")
+        if f.lower().endswith((".pdf", ".docx", ".doc"))
+    ])
+
+    if not daftar_lkpd:
+        st.info("ℹ️ Belum ada file LKPD yang diunggah. (Bapak/Ibu Guru dapat mengunggah file .pdf atau .docx ke repositori GitHub agar otomatis tampil di sini).")
+    else:
+        for idx, nama_file in enumerate(daftar_lkpd):
+            with open(nama_file, "rb") as file_data:
+                isi_bytes = file_data.read()
+
+            ikon = "📕" if nama_file.lower().endswith(".pdf") else "📘"
+            col_nama, col_unduh = st.columns([3, 1])
+
+            with col_nama:
+                st.markdown(f"#### {ikon} {nama_file}")
+            with col_unduh:
+                st.download_button(
+                    label="⬇️ Download LKPD",
+                    data=isi_bytes,
+                    file_name=nama_file,
+                    mime="application/pdf" if nama_file.lower().endswith(".pdf") else "application/octet-stream",
+                    key=f"unduh_{idx}",
+                    use_container_width=True,
+                    type="primary"
+                )
+
+            # Tampilkan pratinjau langsung jika formatnya PDF
+            if nama_file.lower().endswith(".pdf"):
+                with st.expander(f"👁️ Lihat Pratinjau {nama_file} di Layar"):
+                    base64_pdf = base64.b64encode(isi_bytes).decode('utf-8')
+                    pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="650" type="application/pdf"></iframe>'
+                    st.markdown(pdf_display, unsafe_allow_html=True)
+            st.markdown("---")
+
+    # Bagian Pengumpulan Tugas Siswa
+    if LINK_PENGUMPULAN.strip():
+        st.markdown("### 📤 Pengumpulan Hasil Kerja Siswa")
+        st.markdown("Sudah selesai mengerjakan LKPD? Silakan kirim hasil pekerjaanmu melalui tombol di bawah ini:")
+        st.link_button("📤 Kumpulkan Tugas / Jawaban LKPD", LINK_PENGUMPULAN, type="primary")
 
 # ============================================================
 # HALAMAN KALKULATOR
@@ -450,7 +433,6 @@ elif halaman == "🧮 Kalkulator":
     </div>
     """, unsafe_allow_html=True)
 
-    # Input Data di Sidebar
     with st.sidebar:
         st.markdown("---")
         st.markdown("### 📥 Input Data")
@@ -508,7 +490,6 @@ elif halaman == "🧮 Kalkulator":
     modus_val, Tb_mo, p_mo, d1, d2, row_mo = hitung_modus(df_tabel)
     median_val, Tb_me, p_me, half_n, Fk_me, fi_me, row_me = hitung_median(df_tabel)
 
-    # Ringkasan Hasil
     col1, col2, col3 = st.columns(3)
     with col1:
         st.markdown(f'<div class="metric-card"><h3>📈 Rata-rata</h3><div class="value">{mean_val:.2f}</div></div>', unsafe_allow_html=True)
@@ -519,7 +500,6 @@ elif halaman == "🧮 Kalkulator":
 
     st.markdown("---")
 
-    # Sub Tabs
     ktab1, ktab2, ktab3, ktab4, ktab5 = st.tabs([
         "📋 Tabel", "📈 Mean", "🏔️ Modus", "📏 Median", "📊 Grafik"
     ])
@@ -601,7 +581,6 @@ elif halaman == "📝 Quiz":
     </div>
     """, unsafe_allow_html=True)
 
-    # Bank Soal
     soal_bank = [
         {
             "soal": "Rumus rata-rata (mean) data kelompok adalah...",
@@ -700,11 +679,10 @@ elif halaman == "📝 Quiz":
         }
     ]
 
-    # Acak 5 soal dari bank
     random.seed(42)
     soal_terpilih = random.sample(soal_bank, 5)
 
-    st.markdown(f"### 📋 Jawab 5 soal berikut ini!")
+    st.markdown("### 📋 Jawab 5 soal berikut ini!")
     st.markdown("Pilih jawaban yang paling tepat, lalu klik **Cek Jawaban** di bawah.")
     st.markdown("---")
 
@@ -730,7 +708,6 @@ elif halaman == "📝 Quiz":
 
         st.markdown("---")
 
-    # Tombol Cek Jawaban
     col_btn1, col_btn2 = st.columns(2)
     with col_btn1:
         if st.button("✅ Cek Jawaban", type="primary", use_container_width=True):
@@ -750,7 +727,6 @@ elif halaman == "📝 Quiz":
             st.session_state.quiz_answers = {}
             st.rerun()
 
-    # Tampilkan Skor
     if st.session_state.quiz_submitted:
         skor = st.session_state.quiz_score
         total = len(soal_terpilih)
