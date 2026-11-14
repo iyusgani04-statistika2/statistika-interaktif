@@ -14,7 +14,7 @@ import base64
 # Silakan isi link Google Form Bapak/Ibu di antara tanda kutip di bawah ini.
 # Contoh: LINK_PENGUMPULAN = "https://forms.gle/xxxxxx"
 # ============================================================
-LINK_PENGUMPULAN = ""
+LINK_PENGUMPULAN = "https://forms.gle/QiGfAARrD6CoshEg7"
 
 # ============================================================
 # KONFIGURASI HALAMAN
