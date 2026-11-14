@@ -10,11 +10,12 @@ import os
 import base64
 
 # ============================================================
-# PENGATURAN LINK PENGUMPULAN TUGAS SISWA (GOOGLE FORM / DRIVE)
-# Silakan isi link Google Form Bapak/Ibu di antara tanda kutip di bawah ini.
-# Contoh: LINK_PENGUMPULAN = "https://forms.gle/xxxxxx"
+# PENGATURAN KHUSUS GURU (OPSIONAL)
+# 1. Isi link Google Form jika ingin ada tombol pengumpulan LKPD
+# 2. Isi link YouTube jika ingin menampilkan video di halaman Materi
 # ============================================================
-LINK_PENGUMPULAN = "https://forms.gle/QiGfAARrD6CoshEg7"
+LINK_PENGUMPULAN = "https://forms.gle/8ReDsemJSqoJrm618"
+LINK_VIDEO_YOUTUBE = "https://www.youtube.com/watch?v=XQ8UJAMJcUQ"
 
 # ============================================================
 # KONFIGURASI HALAMAN
@@ -119,8 +120,13 @@ else:
     """, unsafe_allow_html=True)
 
 # ============================================================
-# FUNGSI PRATINJAU PDF ANTI-BLOKIR CHROME & SUPORT HP
+# FUNGSI PEMISAH FILE MATERI VS LKPD & PRATINJAU PDF
 # ============================================================
+def adalah_file_lkpd(nama_file):
+    kata_kunci_lkpd = ["lkpd", "lembar kerja", "lembar_kerja", "lks", "worksheet"]
+    nama_kecil = nama_file.lower()
+    return any(k in nama_kecil for k in kata_kunci_lkpd)
+
 def tampilkan_pratinjau_pdf(isi_bytes):
     base64_pdf = base64.b64encode(isi_bytes).decode('utf-8')
     pdf_html = f"""
@@ -158,7 +164,7 @@ def tampilkan_pratinjau_pdf(isi_bytes):
         </style>
     </head>
     <body>
-        <div id="loading-msg">⏳ Memuat pratinjau dokumen LKPD...</div>
+        <div id="loading-msg">⏳ Memuat pratinjau dokumen...</div>
         <div id="pdf-container"></div>
 
         <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -210,7 +216,7 @@ def tampilkan_pratinjau_pdf(isi_bytes):
                     }}
                     loadingMsg.style.display = 'none';
                 }} catch (err) {{
-                    document.getElementById('loading-msg').innerText = '⚠️ Gagal memuat pratinjau: ' + err.message + '. Silakan gunakan tombol Download LKPD di atas.';
+                    document.getElementById('loading-msg').innerText = '⚠️ Gagal memuat pratinjau: ' + err.message + '. Silakan gunakan tombol Download di atas.';
                 }}
             }}
             renderPDF();
@@ -332,7 +338,7 @@ if halaman == "🏠 Beranda":
         st.markdown("""
         <div class="metric-card">
             <h3>📖 Materi</h3>
-            <p>Pelajari teori pemusatan data kelompok dengan penjelasan mudah dipahami.</p>
+            <p>Pelajari modul bahan ajar guru & ringkasan rumus pemusatan data kelompok.</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -364,27 +370,89 @@ if halaman == "🏠 Beranda":
     st.markdown("### 🚀 Cara Memulai")
     st.markdown("""
     1. 👈 Buka **panel kiri** (klik tanda `>>` di pojok kiri atas jika memakai HP)
-    2. 📖 Pilih **Materi** untuk mempelajari konsep dan rumus
+    2. 📖 Pilih **Materi** untuk mempelajari bahan ajar dan rumus
     3. 📄 Pilih **LKPD** untuk melihat & mengunduh lembar kerja
     4. 🧮 Pilih **Kalkulator** untuk simulasi perhitungan & grafik
     5. 📝 Pilih **Quiz** untuk menguji pemahaman mandiri
     """)
 
 # ============================================================
-# HALAMAN MATERI
+# HALAMAN MATERI (MENDUKUNG UPLOAD FILE GURU + RINGKASAN)
 # ============================================================
 elif halaman == "📖 Materi":
     st.markdown("""
     <div class="main-header">
         <h1>📖 Materi Pembelajaran</h1>
-        <p>Pemusatan Data Kelompok</p>
+        <p>Bahan Ajar & Konsep Pemusatan Data Kelompok</p>
     </div>
     """, unsafe_allow_html=True)
 
-    materi_tab1, materi_tab2, materi_tab3, materi_tab4 = st.tabs([
-        "📌 Pengantar", "📈 Rata-rata", "🏔️ Modus", "📏 Median"
+    # Cari semua file bahan ajar yang BUKAN file LKPD
+    ekstensi_materi = (".pdf", ".pptx", ".ppt", ".docx", ".doc", ".png", ".jpg", ".jpeg")
+    daftar_materi_guru = sorted([
+        f for f in os.listdir(".")
+        if f.lower().endswith(ekstensi_materi) and not adalah_file_lkpd(f)
     ])
 
+    materi_tab0, materi_tab1, materi_tab2, materi_tab3, materi_tab4 = st.tabs([
+        "📚 Bahan Ajar Guru", "📌 Pengantar", "📈 Rata-rata", "🏔️ Modus", "📏 Median"
+    ])
+
+    # Tab 0: Bahan Ajar Upload Guru & Video
+    with materi_tab0:
+        if LINK_VIDEO_YOUTUBE.strip():
+            st.markdown("### 🎬 Video Pembelajaran")
+            st.video(LINK_VIDEO_YOUTUBE.strip())
+            st.markdown("---")
+
+        st.markdown("### 📚 Modul & Bahan Ajar")
+        if not daftar_materi_guru:
+            st.info(
+                "ℹ️ Saat ini belum ada file modul tambahan yang diunggah. "
+                "Silakan pelajari ringkasan materi pada tab **📌 Pengantar**, **📈 Rata-rata**, **🏔️ Modus**, dan **📏 Median** di sebelah kanan atas."
+            )
+        else:
+            for idx, nama_file in enumerate(daftar_materi_guru):
+                with open(nama_file, "rb") as file_data:
+                    isi_bytes = file_data.read()
+
+                nama_kecil = nama_file.lower()
+                if nama_kecil.endswith(".pdf"):
+                    ikon = "📕"
+                    mime_type = "application/pdf"
+                elif nama_kecil.endswith((".pptx", ".ppt")):
+                    ikon = "📙"
+                    mime_type = "application/octet-stream"
+                elif nama_kecil.endswith((".png", ".jpg", ".jpeg")):
+                    ikon = "🖼️"
+                    mime_type = "image/png"
+                else:
+                    ikon = "📘"
+                    mime_type = "application/octet-stream"
+
+                col_nama, col_unduh = st.columns([3, 1])
+                with col_nama:
+                    st.markdown(f"#### {ikon} {nama_file}")
+                with col_unduh:
+                    st.download_button(
+                        label="⬇️ Download Materi",
+                        data=isi_bytes,
+                        file_name=nama_file,
+                        mime=mime_type,
+                        key=f"unduh_materi_{idx}",
+                        use_container_width=True,
+                        type="primary"
+                    )
+
+                if nama_kecil.endswith(".pdf"):
+                    with st.expander(f"👁️ Baca Materi {nama_file} di Layar", expanded=True):
+                        tampilkan_pratinjau_pdf(isi_bytes)
+                elif nama_kecil.endswith((".png", ".jpg", ".jpeg")):
+                    st.image(isi_bytes, caption=nama_file, use_container_width=True)
+
+                st.markdown("---")
+
+    # Tab 1 - 4: Ringkasan Konsep Interaktif
     with materi_tab1:
         st.markdown("### Apa itu Data Kelompok?")
         st.markdown("""
@@ -460,7 +528,7 @@ elif halaman == "📖 Materi":
         """, unsafe_allow_html=True)
 
 # ============================================================
-# HALAMAN LKPD
+# HALAMAN LKPD (KHUSUS FILE BERKATA KUNCI LKPD / LEMBAR KERJA)
 # ============================================================
 elif halaman == "📄 LKPD":
     st.markdown("""
@@ -484,11 +552,11 @@ elif halaman == "📄 LKPD":
 
     daftar_lkpd = sorted([
         f for f in os.listdir(".")
-        if f.lower().endswith((".pdf", ".docx", ".doc"))
+        if f.lower().endswith((".pdf", ".docx", ".doc")) and adalah_file_lkpd(f)
     ])
 
     if not daftar_lkpd:
-        st.info("ℹ️ Belum ada file LKPD yang diunggah ke repositori GitHub.")
+        st.info("ℹ️ Belum ada file LKPD yang diunggah (Pastikan nama file mengandung kata 'LKPD' atau 'Lembar Kerja').")
     else:
         for idx, nama_file in enumerate(daftar_lkpd):
             with open(nama_file, "rb") as file_data:
@@ -505,7 +573,7 @@ elif halaman == "📄 LKPD":
                     data=isi_bytes,
                     file_name=nama_file,
                     mime="application/pdf" if nama_file.lower().endswith(".pdf") else "application/octet-stream",
-                    key=f"unduh_{idx}",
+                    key=f"unduh_lkpd_{idx}",
                     use_container_width=True,
                     type="primary"
                 )
