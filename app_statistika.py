@@ -10,49 +10,68 @@ import os
 import base64
 
 # ============================================================
-# PENGATURAN JUDUL & IDENTITAS UMUM (BISA DIUBAH KAPAN SAJA)
-# Bapak/Ibu cukup mengubah tulisan di dalam tanda kutip "..." di bawah ini:
+# 1. PENGATURAN IDENTITAS PORTAL & URUTAN BAB PER KELAS
 # ============================================================
-NAMA_APLIKASI       = "Media Pembelajaran Interaktif"
-MATA_PELAJARAN      = "Matematika"
-NAMA_GURU_SEKOLAH   = "Iyus Ruslan A.G,ST.,S.Pd"  # Opsional, contoh: "Oleh: Iyus Gani, S.Pd."
+NAMA_APLIKASI       = "Portal Pembelajaran Matematika"
+NAMA_GURU_SEKOLAH   = ""  # Contoh: "Oleh: Iyus Gani, S.Pd."
+KELAS_AWAL_INDEX    = 2   # 0 = Kelas 10, 1 = Kelas 11, 2 = Kelas 12
 
-SUBJUDUL_BERANDA    = "Portal Belajar Mandiri, Diskusi LKPD, Simulasi & Evaluasi Siswa"
-SUBJUDUL_MATERI     = "Modul Bahan Ajar & Ringkasan Konsep Pembelajaran"
-SUBJUDUL_LKPD       = "Kegiatan Diskusi Kelompok & Penugasan Mandiri Peserta Didik"
-SUBJUDUL_KALKULATOR = "Alat Bantu Eksplorasi Perhitungan & Visualisasi Grafik"
-SUBJUDUL_QUIZ       = "Evaluasi Mandiri & Uji Pemahaman Materi Pembelajaran"
+LINK_PENGUMPULAN    = "https://forms.gle/4fmfyKSrZ5f3eva97"  # Isi link Google Form jika ada pengumpulan tugas
+LINK_VIDEO_YOUTUBE  = "https://www.youtube.com/watch?v=XQ8UJAMJcUQ&t=56s"  # Isi link YouTube jika ada video pembelajaran
 
-LINK_PENGUMPULAN    = "https://forms.gle/2w9YxHCiUoHpVutC7"  # Isi link Google Form jika ada pengumpulan tugas
-LINK_VIDEO_YOUTUBE  = "https://www.youtube.com/watch?v=XQ8UJAMJcUQ&t=2s"  # Isi link YouTube jika ingin menampilkan video materi
+KURIKULUM_KELAS = {
+    "Kelas 10": [
+        ("eksponen",     "🔢 Bab 1: Eksponen & Logaritma"),
+        ("barisan",      "📈 Bab 2: Barisan & Deret"),
+        ("trigonometri", "📐 Bab 3: Trigonometri"),
+        ("statistika",   "📊 Bab 4: Statistika (Data Kelompok)"),
+        ("peluang",      "🎲 Bab 5: Peluang Kejadian"),
+    ],
+    "Kelas 11": [
+        ("matriks",      "🧮 Bab 1: Matriks & Determinan"),
+        ("transformasi", "🔄 Bab 2: Transformasi Geometri"),
+        ("geometri",     "📐 Bab 3: Geometri (Bangun Ruang)"),
+        ("statistika",   "📊 Bab 4: Statistika (Data Kelompok)"),
+    ],
+    "Kelas 12": [
+        ("statistika",   "📊 Bab 1: Statistika (Data Kelompok)"),
+        ("geometri",     "📐 Bab 2: Geometri (Bangun Ruang / Dimensi Tiga)"),
+        ("peluang",      "🎲 Bab 3: Peluang & Kaidah Pencacahan"),
+        ("turunan",      "📉 Bab 4: Limit & Turunan Fungsi"),
+    ],
+}
 
-# Ubah menjadi False jika sedang mengajar bab lain dan ingin menyembunyikan tab rumus Statistika
-TAMPILKAN_RINGKASAN_STATISTIKA = True
+KATA_KUNCI_FILE_BAB = {
+    "statistika":   ["statistika", "statistik", "data kelompok", "pemusatan", "mean", "modus", "median"],
+    "geometri":     ["geometri", "bangun ruang", "dimensi tiga", "dimensi 3", "kubus", "balok"],
+    "peluang":      ["peluang", "pencacahan", "permutasi", "kombinasi", "dadu", "koin"],
+    "eksponen":     ["eksponen", "logaritma", "bentuk pangkat"],
+    "barisan":      ["barisan", "deret", "aritmetika", "aritmatika"],
+    "trigonometri": ["trigonometri", "sinus", "cosinus", "tangen", "sudut"],
+    "matriks":      ["matriks", "determinan"],
+    "transformasi": ["transformasi", "translasi", "refleksi", "rotasi", "dilatasi"],
+    "turunan":      ["limit", "turunan", "diferensial"],
+}
 
 # ============================================================
-# KONFIGURASI HALAMAN
+# 2. KONFIGURASI HALAMAN & SESSION STATE
 # ============================================================
 st.set_page_config(
-    page_title=f"{NAMA_APLIKASI} - {MATA_PELAJARAN}",
+    page_title=NAMA_APLIKASI,
     page_icon="🎓",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ============================================================
-# SESSION STATE (Untuk Quiz & Dark Mode)
-# ============================================================
-if 'dark_mode' not in st.session_state:
+if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = False
-if 'quiz_answers' not in st.session_state:
-    st.session_state.quiz_answers = {}
-if 'quiz_submitted' not in st.session_state:
-    st.session_state.quiz_submitted = False
-if 'quiz_score' not in st.session_state:
+if "quiz_submitted_key" not in st.session_state:
+    st.session_state.quiz_submitted_key = ""
+if "quiz_score" not in st.session_state:
     st.session_state.quiz_score = 0
 
 # ============================================================
-# CSS TAMPILAN (Terang & Gelap)
+# 3. CSS TAMPILAN (TERANG & GELAP)
 # ============================================================
 if st.session_state.dark_mode:
     st.markdown("""
@@ -60,71 +79,76 @@ if st.session_state.dark_mode:
         .stApp { background-color: #1a1a2e; color: #e0e0e0; }
         .main-header {
             background: linear-gradient(135deg, #0f3460 0%, #533483 100%);
-            padding: 2rem; border-radius: 15px; color: white;
-            text-align: center; margin-bottom: 2rem;
+            padding: 1.8rem; border-radius: 15px; color: white;
+            text-align: center; margin-bottom: 1.5rem;
         }
         .main-header h1, .main-header p { color: white; margin: 0.3rem 0; }
+        .badge-aktif {
+            display: inline-block; background: rgba(255,255,255,0.2);
+            padding: 5px 14px; border-radius: 20px; font-size: 0.9rem;
+            margin-bottom: 8px; color: #ffffff; font-weight: bold;
+        }
         .metric-card {
             background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
-            padding: 1.5rem; border-radius: 12px; text-align: center;
+            padding: 1.4rem; border-radius: 12px; text-align: center;
             border-left: 5px solid #e94560; color: #e0e0e0; margin-bottom: 1rem;
         }
-        .metric-card h3 { color: #e0e0e0; }
-        .metric-card .value { font-size: 2rem; font-weight: bold; color: #e94560; }
+        .metric-card h3 { color: #e0e0e0; margin-top: 0; }
+        .metric-card .value { font-size: 1.9rem; font-weight: bold; color: #e94560; }
         .formula-box {
-            background: #0d1117; color: #7ee787; padding: 1.2rem;
+            background: #0d1117; color: #7ee787; padding: 1.1rem;
             border-radius: 10px; font-family: 'Courier New', monospace;
-            font-size: 1.1rem; border: 1px solid #30363d;
+            font-size: 1.05rem; border: 1px solid #30363d; margin: 0.6rem 0;
         }
         .step-box {
             background: #16213e; border-left: 4px solid #e94560;
-            padding: 1rem; border-radius: 0 8px 8px 0; margin: 0.5rem 0;
-            color: #e0e0e0;
+            padding: 1rem; border-radius: 0 8px 8px 0; margin: 0.5rem 0; color: #e0e0e0;
         }
-        .materi-box {
-            background: #16213e; padding: 1.5rem; border-radius: 12px;
-            border: 1px solid #30363d; margin: 1rem 0; color: #e0e0e0;
+        .materi-box, .quiz-box {
+            background: #16213e; padding: 1.4rem; border-radius: 12px;
+            border: 1px solid #30363d; margin: 0.8rem 0; color: #e0e0e0;
         }
-        .quiz-box {
-            background: #16213e; padding: 1.5rem; border-radius: 12px;
-            border: 1px solid #30363d; margin: 1rem 0; color: #e0e0e0;
-        }
-        .quiz-benar { background: #1a3a1a; border: 2px solid #4caf50; padding: 1rem; border-radius: 8px; color: #4caf50; }
-        .quiz-salah { background: #3a1a1a; border: 2px solid #f44336; padding: 1rem; border-radius: 8px; color: #f44336; }
+        .quiz-benar { background: #1a3a1a; border: 2px solid #4caf50; padding: 1rem; border-radius: 8px; color: #81c784; }
+        .quiz-salah { background: #3a1a1a; border: 2px solid #f44336; padding: 1rem; border-radius: 8px; color: #e57373; }
     </style>
     """, unsafe_allow_html=True)
 else:
     st.markdown("""
     <style>
         .main-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 2rem; border-radius: 15px; color: white;
-            text-align: center; margin-bottom: 2rem;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            padding: 1.8rem; border-radius: 15px; color: white;
+            text-align: center; margin-bottom: 1.5rem;
         }
         .main-header h1, .main-header p { color: white; margin: 0.3rem 0; }
-        .metric-card {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            padding: 1.5rem; border-radius: 12px; text-align: center;
-            border-left: 5px solid #667eea; margin-bottom: 1rem;
+        .badge-aktif {
+            display: inline-block; background: rgba(255,255,255,0.22);
+            padding: 5px 14px; border-radius: 20px; font-size: 0.9rem;
+            margin-bottom: 8px; color: #ffffff; font-weight: bold;
         }
-        .metric-card h3 { color: #333; }
-        .metric-card .value { font-size: 2rem; font-weight: bold; color: #667eea; }
+        .metric-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            padding: 1.4rem; border-radius: 12px; text-align: center;
+            border-left: 5px solid #4f46e5; margin-bottom: 1rem;
+        }
+        .metric-card h3 { color: #1e293b; margin-top: 0; }
+        .metric-card .value { font-size: 1.9rem; font-weight: bold; color: #4f46e5; }
         .formula-box {
-            background: #1e1e2e; color: #a6e3a1; padding: 1.2rem;
+            background: #1e1e2e; color: #a6e3a1; padding: 1.1rem;
             border-radius: 10px; font-family: 'Courier New', monospace;
-            font-size: 1.1rem; border: 1px solid #45475a;
+            font-size: 1.05rem; border: 1px solid #45475a; margin: 0.6rem 0;
         }
         .step-box {
-            background: #f0f4ff; border-left: 4px solid #667eea;
+            background: #eef2ff; border-left: 4px solid #4f46e5;
             padding: 1rem; border-radius: 0 8px 8px 0; margin: 0.5rem 0;
         }
         .materi-box {
-            background: #f8f9ff; padding: 1.5rem; border-radius: 12px;
-            border: 1px solid #e0e4f0; margin: 1rem 0;
+            background: #f8faff; padding: 1.4rem; border-radius: 12px;
+            border: 1px solid #e0e7ff; margin: 0.8rem 0;
         }
         .quiz-box {
-            background: #fffdf0; padding: 1.5rem; border-radius: 12px;
-            border: 1px solid #f0e6c0; margin: 1rem 0;
+            background: #fffbeb; padding: 1.4rem; border-radius: 12px;
+            border: 1px solid #fde68a; margin: 0.8rem 0;
         }
         .quiz-benar { background: #e8f5e9; border: 2px solid #4caf50; padding: 1rem; border-radius: 8px; color: #2e7d32; }
         .quiz-salah { background: #ffebee; border: 2px solid #f44336; padding: 1rem; border-radius: 8px; color: #c62828; }
@@ -132,103 +156,86 @@ else:
     """, unsafe_allow_html=True)
 
 # ============================================================
-# FUNGSI PEMISAH FILE MATERI VS LKPD & PRATINJAU PDF
+# 4. FUNGSI PEMBACA PDF ANTI-BLOKIR & DETEKSI FILE PER BAB
 # ============================================================
 def adalah_file_lkpd(nama_file):
-    kata_kunci_lkpd = ["lkpd", "lembar kerja", "lembar_kerja", "lks", "worksheet"]
-    nama_kecil = nama_file.lower()
-    return any(k in nama_kecil for k in kata_kunci_lkpd)
+    kata_lkpd = ["lkpd", "lembar kerja", "lembar_kerja", "lks", "worksheet"]
+    return any(k in nama_file.lower() for k in kata_lkpd)
+
+def file_cocok_dengan_bab(nama_file, id_bab, nama_kelas):
+    nama_kecil = nama_file.lower().replace("_", " ").replace("-", " ")
+    angka_kelas = nama_kelas.split()[-1]
+    for kls in ["10", "11", "12"]:
+        if f"kelas {kls}" in nama_kecil or f"kls {kls}" in nama_kecil or f"kelas{kls}" in nama_kecil:
+            if kls != angka_kelas:
+                return False
+
+    kata_bab_ini = KATA_KUNCI_FILE_BAB.get(id_bab, [])
+    if any(k in nama_kecil for k in kata_bab_ini):
+        return True
+
+    for bab_lain, daftar_kata in KATA_KUNCI_FILE_BAB.items():
+        if bab_lain != id_bab and any(k in nama_kecil for k in daftar_kata):
+            return False
+
+    return None
 
 def tampilkan_pratinjau_pdf(isi_bytes):
-    base64_pdf = base64.b64encode(isi_bytes).decode('utf-8')
+    base64_pdf = base64.b64encode(isi_bytes).decode("utf-8")
     pdf_html = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="utf-8">
         <style>
-            body {{
-                margin: 0;
-                padding: 15px;
-                background-color: #525659;
-                font-family: Arial, sans-serif;
-                text-align: center;
-            }}
-            #loading-msg {{
-                color: #ffffff;
-                font-size: 14px;
-                padding: 20px;
-            }}
-            .page-label {{
-                color: #f0f0f0;
-                font-size: 13px;
-                margin: 8px 0 6px 0;
-            }}
+            body {{ margin: 0; padding: 15px; background-color: #525659; font-family: Arial, sans-serif; text-align: center; }}
+            #loading-msg {{ color: #ffffff; font-size: 14px; padding: 20px; }}
+            .page-label {{ color: #f0f0f0; font-size: 13px; margin: 8px 0 6px 0; }}
             canvas {{
-                display: block;
-                margin: 0 auto 20px auto;
-                max-width: 100%;
-                height: auto !important;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.45);
-                border-radius: 6px;
-                background-color: #ffffff;
+                display: block; margin: 0 auto 20px auto; max-width: 100%; height: auto !important;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.45); border-radius: 6px; background-color: #ffffff;
             }}
         </style>
     </head>
     <body>
         <div id="loading-msg">⏳ Memuat pratinjau dokumen...</div>
         <div id="pdf-container"></div>
-
         <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
         <script>
             const pdfjsLib = window['pdfjs-dist/build/pdf'];
             try {{
-                const blob = new Blob([
-                    "importScripts('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js');"
-                ], {{ type: 'application/javascript' }});
+                const blob = new Blob(["importScripts('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js');"], {{ type: 'application/javascript' }});
                 pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(blob);
             }} catch (e) {{
                 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
             }}
-
             const raw = atob("{base64_pdf}");
             const uint8Array = new Uint8Array(raw.length);
             for (let i = 0; i < raw.length; i++) {{
                 uint8Array[i] = raw.charCodeAt(i);
             }}
-
             async function renderPDF() {{
                 try {{
-                    const loadingTask = pdfjsLib.getDocument({{ data: uint8Array }});
-                    const pdf = await loadingTask.promise;
+                    const pdf = await pdfjsLib.getDocument({{ data: uint8Array }}).promise;
                     const container = document.getElementById('pdf-container');
                     const loadingMsg = document.getElementById('loading-msg');
                     loadingMsg.innerText = '⏳ Menampilkan ' + pdf.numPages + ' halaman...';
-
                     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {{
                         const page = await pdf.getPage(pageNum);
-                        const scale = 1.6;
-                        const viewport = page.getViewport({{ scale: scale }});
-
+                        const viewport = page.getViewport({{ scale: 1.55 }});
                         const label = document.createElement('div');
                         label.className = 'page-label';
                         label.innerText = 'Halaman ' + pageNum + ' dari ' + pdf.numPages;
                         container.appendChild(label);
-
                         const canvas = document.createElement('canvas');
-                        const context = canvas.getContext('2d');
                         canvas.height = viewport.height;
                         canvas.width = viewport.width;
                         container.appendChild(canvas);
-
-                        await page.render({{
-                            canvasContext: context,
-                            viewport: viewport
-                        }}).promise;
+                        await page.render({{ canvasContext: canvas.getContext('2d'), viewport: viewport }}).promise;
                     }}
                     loadingMsg.style.display = 'none';
                 }} catch (err) {{
-                    document.getElementById('loading-msg').innerText = '⚠️ Gagal memuat pratinjau: ' + err.message + '. Silakan gunakan tombol Download di atas.';
+                    document.getElementById('loading-msg').innerText = '⚠️ Gagal memuat pratinjau. Silakan klik tombol Download di atas.';
                 }}
             }}
             renderPDF();
@@ -236,359 +243,768 @@ def tampilkan_pratinjau_pdf(isi_bytes):
     </body>
     </html>
     """
-    components.html(pdf_html, height=650, scrolling=True)
+    components.html(pdf_html, height=640, scrolling=True)
 
 # ============================================================
-# FUNGSI PERHITUNGAN
+# 5. BANK KONTEN MATERI & SOAL QUIZ SELURUH BAB
 # ============================================================
-def buat_distribusi_frekuensi(data, jumlah_kelas):
-    data = sorted(data)
-    data_min, data_max = min(data), max(data)
-    jangkauan = data_max - data_min
-    panjang_kelas = max(1, math.ceil(jangkauan / jumlah_kelas))
-    tabel = []
-    batas_bawah = data_min
-    for i in range(jumlah_kelas):
-        batas_atas = batas_bawah + panjang_kelas - 1
-        tepi_bawah = batas_bawah - 0.5
-        tepi_atas = batas_atas + 0.5
-        titik_tengah = (batas_bawah + batas_atas) / 2
-        if i == jumlah_kelas - 1:
-            frekuensi = sum(1 for d in data if d >= batas_bawah)
+DATA_BAB = {
+    "statistika": {
+        "nama": "Statistika (Data Kelompok)",
+        "deskripsi": "Ukuran Pemusatan Data Kelompok: Tabel Distribusi Frekuensi, Rata-rata (Mean), Modus, dan Median.",
+        "materi": [
+            ("📌 Pengantar & Sturges", """
+            <div class="materi-box">
+            <b>Data Kelompok</b> adalah data statistik yang dikelompokkan ke dalam kelas-kelas interval dengan panjang kelas yang sama.<br><br>
+            <b>Rumus Aturan Sturges (Menentukan Banyak Kelas):</b>
+            </div>
+            <div class="formula-box">k = 1 + 3,322 × log(n)  |  Jangkauan (R) = Xmax - Xmin  |  Panjang Kelas (p) = R / k</div>
+            <div class="materi-box">
+            • <b>Titik Tengah (xi)</b> = ½ × (Batas Bawah + Batas Atas)<br>
+            • <b>Tepi Bawah (Tb)</b> = Batas Bawah − 0,5 &nbsp;|&nbsp; <b>Tepi Atas (Ta)</b> = Batas Atas + 0,5
+            </div>
+            """),
+            ("📈 Rata-rata (Mean)", """
+            <div class="formula-box">x̄ = Σ(fi × xi) / Σfi</div>
+            <div class="materi-box">
+            <b>Langkah menghitung Mean Data Kelompok:</b><br>
+            1. Tentukan titik tengah (<b>xi</b>) masing-masing kelas interval.<br>
+            2. Kalikan frekuensi kelas dengan titik tengahnya (<b>fi × xi</b>).<br>
+            3. Jumlahkan seluruh hasil kali tersebut, lalu bagi dengan jumlah total frekuensi (<b>Σfi</b>).
+            </div>
+            """),
+            ("🏔️ Modus & 📏 Median", """
+            <div class="formula-box">Modus (Mo) = Tb + p × [ d1 / (d1 + d2) ]</div>
+            <div class="materi-box">
+            • <b>Kelas Modus</b> = Kelas dengan frekuensi (fi) paling besar.<br>
+            • <b>d1</b> = Selisih fi kelas modus dengan kelas sebelumnya &nbsp;|&nbsp; <b>d2</b> = Selisih fi dengan kelas sesudahnya.
+            </div>
+            <div class="formula-box">Median (Me) = Tb + p × [ (½n − Fk) / fi ]</div>
+            <div class="materi-box">
+            • <b>Kelas Median</b> = Kelas pertama yang Frekuensi Kumulatifnya (Fk) ≥ ½n.<br>
+            • <b>Fk</b> = Frekuensi kumulatif sebelum kelas median &nbsp;|&nbsp; <b>fi</b> = Frekuensi kelas median.
+            </div>
+            """),
+        ],
+        "quiz": [
+            {"soal": "Rumus rata-rata (mean) data kelompok adalah...", "pilihan": ["x̄ = Σfi / Σxi", "x̄ = Σ(fi × xi) / Σfi", "x̄ = Σfi × Σxi", "x̄ = Σxi / n"], "jawaban": 1, "penjelasan": "Mean data kelompok = Σ(fi × xi) dibagi total frekuensi Σfi."},
+            {"soal": "Tepi bawah (Tb) dari kelas interval 50 - 59 adalah...", "pilihan": ["49", "49,5", "50", "50,5"], "jawaban": 1, "penjelasan": "Tb = Batas bawah - 0,5 = 50 - 0,5 = 49,5."},
+            {"soal": "Titik tengah (xi) dari kelas interval 60 - 69 adalah...", "pilihan": ["64", "64,5", "65", "65,5"], "jawaban": 1, "penjelasan": "xi = (60 + 69) / 2 = 64,5."},
+            {"soal": "Kelas modus pada tabel distribusi frekuensi adalah kelas yang memiliki...", "pilihan": ["Frekuensi terkecil", "Frekuensi terbesar", "Titik tengah terbesar", "Tepi atas terkecil"], "jawaban": 1, "penjelasan": "Modus berada pada kelas dengan frekuensi tertinggi."},
+            {"soal": "Jika jumlah seluruh data n = 40, maka letak kelas median berada pada data ke-...", "pilihan": ["10", "15", "20", "25"], "jawaban": 2, "penjelasan": "Letak median = ½ × n = ½ × 40 = 20."},
+        ]
+    },
+    "geometri": {
+        "nama": "Geometri (Bangun Ruang & Dimensi Tiga)",
+        "deskripsi": "Unsur Bangun Ruang, Volume, Luas Permukaan, serta Jarak Titik, Garis, dan Bidang pada Dimensi Tiga.",
+        "materi": [
+            ("🧊 Dimensi Tiga (Kubus)", """
+            <div class="materi-box">
+            Pada kubus <b>ABCD.EFGH</b> dengan panjang rusuk <b>s</b>:<br>
+            • Memiliki <b>6 sisi</b> kongruen, <b>12 rusuk</b> sama panjang, dan <b>8 titik sudut</b>.<br>
+            • Memiliki <b>12 diagonal bidang</b> (contoh: AC, BD, BG, AF) dan <b>4 diagonal ruang</b> (AG, BH, CE, DF).
+            </div>
+            <div class="formula-box">Diagonal Bidang = s√2  |  Diagonal Ruang = s√3</div>
+            <div class="materi-box">
+            <b>Konsep Jarak pada Dimensi Tiga:</b><br>
+            • <b>Jarak titik ke titik:</b> Panjang ruas garis terpendek yang menghubungkan kedua titik (Teorema Pythagoras).<br>
+            • <b>Jarak titik ke garis/bidang:</b> Panjang ruas garis proyeksi yang tegak lurus dari titik ke garis/bidang tersebut.
+            </div>
+            """),
+            ("📦 Bangun Ruang Sisi Datar & Lengkung", """
+            <div class="formula-box">Kubus: V = s³  |  Lp = 6s²</div>
+            <div class="formula-box">Balok: V = p × l × t  |  Lp = 2(pl + pt + lt)</div>
+            <div class="formula-box">Tabung: V = πr²t  |  Lp = 2πr(r + t)</div>
+            <div class="formula-box">Kerucut: V = ⅓πr²t  |  Bola: V = ⁴⁄₃πr³ , Lp = 4πr²</div>
+            """),
+        ],
+        "quiz": [
+            {"soal": "Diketahui kubus ABCD.EFGH dengan panjang rusuk 6 cm. Panjang diagonal bidang AC adalah...", "pilihan": ["6 cm", "6√2 cm", "6√3 cm", "12 cm"], "jawaban": 1, "penjelasan": "Diagonal bidang kubus = s√2 = 6√2 cm."},
+            {"soal": "Pada kubus ABCD.EFGH dengan rusuk 8 cm, panjang diagonal ruang AG adalah...", "pilihan": ["8 cm", "8√2 cm", "8√3 cm", "16 cm"], "jawaban": 2, "penjelasan": "Diagonal ruang kubus = s√3 = 8√3 cm."},
+            {"soal": "Banyaknya rusuk dan titik sudut pada kubus berturut-turut adalah...", "pilihan": ["6 dan 8", "8 dan 12", "12 dan 8", "12 dan 6"], "jawaban": 2, "penjelasan": "Kubus memiliki 12 rusuk, 8 titik sudut, dan 6 bidang sisi."},
+            {"soal": "Sebuah balok berukuran panjang 10 cm, lebar 5 cm, dan tinggi 4 cm. Volumenya adalah...", "pilihan": ["90 cm³", "180 cm³", "200 cm³", "220 cm³"], "jawaban": 2, "penjelasan": "Volume balok = p × l × t = 10 × 5 × 4 = 200 cm³."},
+            {"soal": "Jarak dari suatu titik ke bidang adalah panjang ruas garis yang...", "pilihan": ["Sejajar bidang", "Miring terhadap bidang", "Tegak lurus dari titik ke bidang", "Memotong rusuk terpanjang"], "jawaban": 2, "penjelasan": "Jarak selalu diukur menggunakan garis proyeksi yang tegak lurus (90°)."},
+        ]
+    },
+    "peluang": {
+        "nama": "Peluang & Kaidah Pencacahan",
+        "deskripsi": "Aturan Perkalian, Faktorial, Permutasi, Kombinasi, serta Peluang Kejadian Majemuk.",
+        "materi": [
+            ("🔢 Pencacahan, Permutasi & Kombinasi", """
+            <div class="formula-box">Faktorial: n! = n × (n−1) × (n−2) × ... × 1   (dengan 0! = 1)</div>
+            <div class="formula-box">Permutasi (Memperhatikan Urutan): P(n, r) = n! / (n − r)!</div>
+            <div class="formula-box">Kombinasi (Tanpa Memperhatikan Urutan): C(n, r) = n! / [ r! × (n − r)! ]</div>
+            <div class="materi-box">
+            • Gunakan <b>Permutasi</b> untuk pemilihan jabatan (Ketua-Sekretaris), susunan angka/PIN, posisi duduk.<br>
+            • Gunakan <b>Kombinasi</b> untuk pemilihan tim/delegasi, mengambil bola sekaligus, jabat tangan.
+            </div>
+            """),
+            ("🎲 Peluang & Frekuensi Harapan", """
+            <div class="formula-box">P(A) = n(A) / n(S)   dengan   0 ≤ P(A) ≤ 1</div>
+            <div class="formula-box">Peluang Komplemen: P(A') = 1 − P(A)  |  Frekuensi Harapan: Fh(A) = P(A) × N</div>
+            <div class="materi-box">
+            • <b>Ruang Sampel (S):</b> Himpunan semua hasil yang mungkin terjadi pada suatu percobaan.<br>
+            • 1 Koin: n(S) = 2 &nbsp;|&nbsp; 1 Dadu: n(S) = 6 &nbsp;|&nbsp; 2 Dadu: n(S) = 36.
+            </div>
+            """),
+        ],
+        "quiz": [
+            {"soal": "Nilai dari 5! (5 faktorial) adalah...", "pilihan": ["25", "60", "120", "240"], "jawaban": 2, "penjelasan": "5! = 5 × 4 × 3 × 2 × 1 = 120."},
+            {"soal": "Banyak cara memilih Ketua dan Wakil Ketua dari 6 kandidat adalah...", "pilihan": ["15 cara", "30 cara", "36 cara", "12 cara"], "jawaban": 1, "penjelasan": "Karena memperhatikan urutan jabatan, gunakan Permutasi: P(6,2) = 6 × 5 = 30 cara."},
+            {"soal": "Banyak cara memilih 3 siswa untuk mewakili sekolah dari 6 siswa adalah...", "pilihan": ["18 cara", "20 cara", "120 cara", "36 cara"], "jawaban": 1, "penjelasan": "Tanpa urutan: Kombinasi C(6,3) = 6! / (3! × 3!) = 20 cara."},
+            {"soal": "Sebuah dadu dilempar satu kali. Peluang muncul mata dadu bilangan genap adalah...", "pilihan": ["1/6", "1/3", "1/2", "2/3"], "jawaban": 2, "penjelasan": "Mata dadu genap = {2, 4, 6} ada 3. P(A) = 3/6 = 1/2."},
+            {"soal": "Jika peluang hari ini hujan adalah 0,35, maka peluang hari ini TIDAK hujan adalah...", "pilihan": ["0,35", "0,55", "0,65", "0,75"], "jawaban": 2, "penjelasan": "P(A') = 1 - 0,35 = 0,65."},
+        ]
+    },
+    "eksponen": {
+        "nama": "Eksponen & Logaritma",
+        "deskripsi": "Sifat-sifat Bilangan Berpangkat (Eksponen), Fungsi Eksponen, dan Logaritma.",
+        "materi": [
+            ("⚡ Sifat Eksponen", """
+            <div class="formula-box">aᵐ × aⁿ = aᵐ⁺ⁿ  |  aᵐ : aⁿ = aᵐ⁻ⁿ  |  (aᵐ)ⁿ = aᵐˣⁿ  |  a⁰ = 1  |  a⁻ⁿ = 1 / aⁿ</div>
+            <div class="materi-box">
+            <b>Fungsi Eksponen</b> berbentuk <b>f(x) = aˣ</b> dengan a > 0 dan a ≠ 1.<br>
+            • Jika <b>a > 1</b>, grafik monoton naik (pertumbuhan eksponensial).<br>
+            • Jika <b>0 &lt; a &lt; 1</b>, grafik monoton turun (peluruhan eksponensial).
+            </div>
+            """),
+            ("🪵 Konsep & Sifat Logaritma", """
+            <div class="formula-box">ᵃlog b = c  ⟺  aᶜ = b   (dengan a > 0, a ≠ 1, b > 0)</div>
+            <div class="formula-box">ᵃlog(x × y) = ᵃlog x + ᵃlog y  |  ᵃlog(x / y) = ᵃlog x − ᵃlog y  |  ᵃlog(xⁿ) = n · ᵃlog x</div>
+            """),
+        ],
+        "quiz": [
+            {"soal": "Bentuk sederhana dari 2³ × 2⁴ adalah...", "pilihan": ["2⁷", "2¹²", "4⁷", "2¹"], "jawaban": 0, "penjelasan": "aᵐ × aⁿ = aᵐ⁺ⁿ → 2³⁺⁴ = 2⁷ = 128."},
+            {"soal": "Nilai dari 5⁰ + 2⁻¹ adalah...", "pilihan": ["0,5", "1", "1,5", "2,5"], "jawaban": 2, "penjelasan": "5⁰ = 1 dan 2⁻¹ = 0,5. Maka 1 + 0,5 = 1,5."},
+            {"soal": "Nilai dari ²log 8 adalah...", "pilihan": ["2", "3", "4", "6"], "jawaban": 1, "penjelasan": "Karena 2³ = 8, maka ²log 8 = 3."},
+            {"soal": "Nilai dari ³log 9 + ³log 3 adalah...", "pilihan": ["2", "3", "4", "6"], "jawaban": 1, "penjelasan": "³log 9 + ³log 3 = 2 + 1 = 3."},
+            {"soal": "Grafik fungsi f(x) = 2ˣ memotong sumbu-Y di titik...", "pilihan": ["(0, 0)", "(0, 1)", "(1, 0)", "(0, 2)"], "jawaban": 1, "penjelasan": "Saat x = 0, f(0) = 2⁰ = 1. Titik potongnya (0, 1)."},
+        ]
+    },
+    "barisan": {
+        "nama": "Barisan & Deret (Aritmetika & Geometri)",
+        "deskripsi": "Pola Bilangan, Suku ke-n (Un), dan Jumlah n Suku Pertama (Sn) Aritmetika serta Geometri.",
+        "materi": [
+            ("➕ Barisan & Deret Aritmetika", """
+            <div class="materi-box">Barisan dengan selisih/beda (<b>b = U₂ − U₁</b>) antar suku berurutan yang selalu tetap.</div>
+            <div class="formula-box">Suku ke-n: Un = a + (n − 1)b</div>
+            <div class="formula-box">Jumlah n suku: Sn = ½n × [ 2a + (n − 1)b ] = ½n × (a + Un)</div>
+            """),
+            ("✖️ Barisan & Deret Geometri", """
+            <div class="materi-box">Barisan dengan rasio/pembanding (<b>r = U₂ / U₁</b>) antar suku berurutan yang selalu tetap.</div>
+            <div class="formula-box">Suku ke-n: Un = a × rⁿ⁻¹</div>
+            <div class="formula-box">Jumlah n suku: Sn = a(rⁿ − 1) / (r − 1)   |   Deret Tak Hingga (|r| &lt; 1): S∞ = a / (1 − r)</div>
+            """),
+        ],
+        "quiz": [
+            {"soal": "Diketahui barisan aritmetika: 3, 7, 11, 15, ... Suku ke-10 adalah...", "pilihan": ["35", "39", "43", "47"], "jawaban": 1, "penjelasan": "a = 3, b = 4. U10 = 3 + 9(4) = 3 + 36 = 39."},
+            {"soal": "Jumlah 10 suku pertama dari deret aritmetika 2 + 4 + 6 + 8 + ... adalah...", "pilihan": ["90", "100", "110", "120"], "jawaban": 2, "penjelasan": "a = 2, U10 = 20. S10 = ½(10)(2 + 20) = 5 × 22 = 110."},
+            {"soal": "Rasio dari barisan geometri 2, 6, 18, 54, ... adalah...", "pilihan": ["2", "3", "4", "6"], "jawaban": 1, "penjelasan": "r = 6 / 2 = 3."},
+            {"soal": "Suku ke-5 dari barisan geometri dengan suku pertama 2 dan rasio 2 adalah...", "pilihan": ["16", "32", "64", "10"], "jawaban": 1, "penjelasan": "U5 = a × r⁴ = 2 × 2⁴ = 32."},
+            {"soal": "Jumlah deret geometri tak hingga 8 + 4 + 2 + 1 + ... adalah...", "pilihan": ["12", "15", "16", "20"], "jawaban": 2, "penjelasan": "a = 8, r = ½. S∞ = 8 / (1 - ½) = 16."},
+        ]
+    },
+    "trigonometri": {
+        "nama": "Trigonometri",
+        "deskripsi": "Perbandingan Trigonometri Segitiga Siku-siku, Sudut Istimewa, dan Grafik Fungsi Trigonometri.",
+        "materi": [
+            ("📐 Perbandingan Segitiga Siku-siku", """
+            <div class="formula-box">sin θ = Depan / Miring (DeMi)  |  cos θ = Samping / Miring (SaMi)  |  tan θ = Depan / Samping (DeSa)</div>
+            <div class="materi-box">
+            <b>Identitas Dasar & Konversi Sudut:</b><br>
+            • sin²θ + cos²θ = 1 &nbsp;|&nbsp; tan θ = sin θ / cos θ<br>
+            • π radian = 180° &nbsp;⟹&nbsp; 1 radian ≈ 57,3°
+            </div>
+            """),
+            ("🌟 Sudut Istimewa Kuadran I", """
+            <div class="materi-box">
+            <b>Nilai Perbandingan Sudut Istimewa (0° sampai 90°):</b><br><br>
+            • <b>sin θ :</b> 0° = 0 &nbsp;|&nbsp; 30° = ½ &nbsp;|&nbsp; 45° = ½√2 &nbsp;|&nbsp; 60° = ½√3 &nbsp;|&nbsp; 90° = 1<br>
+            • <b>cos θ :</b> 0° = 1 &nbsp;|&nbsp; 30° = ½√3 &nbsp;|&nbsp; 45° = ½√2 &nbsp;|&nbsp; 60° = ½ &nbsp;|&nbsp; 90° = 0<br>
+            • <b>tan θ :</b> 0° = 0 &nbsp;|&nbsp; 30° = ⅓√3 &nbsp;|&nbsp; 45° = 1 &nbsp;|&nbsp; 60° = √3 &nbsp;|&nbsp; 90° = Tak Terdefinisi
+            </div>
+            """),
+        ],
+        "quiz": [
+            {"soal": "Pada segitiga siku-siku, jika sisi depan sudut θ = 3 dan sisi miring = 5, maka nilai sin θ adalah...", "pilihan": ["3/4", "4/5", "3/5", "5/3"], "jawaban": 2, "penjelasan": "sin θ = Depan / Miring = 3/5."},
+            {"soal": "Nilai dari sin 30° + cos 60° adalah...", "pilihan": ["0", "½", "1", "√3"], "jawaban": 2, "penjelasan": "sin 30° = ½ dan cos 60° = ½. Maka ½ + ½ = 1."},
+            {"soal": "Nilai dari tan 45° adalah...", "pilihan": ["0", "½√2", "1", "√3"], "jawaban": 2, "penjelasan": "Sudut istimewa tan 45° = 1."},
+            {"soal": "Sudut 90° jika dinyatakan dalam satuan radian sama dengan...", "pilihan": ["¼ π rad", "½ π rad", "π rad", "2π rad"], "jawaban": 1, "penjelasan": "90° / 180° × π = ½ π radian."},
+            {"soal": "Nilai maksimum dari fungsi f(x) = 3 sin(x) adalah...", "pilihan": ["1", "2", "3", "6"], "jawaban": 2, "penjelasan": "Amplitudo A = 3, sehingga nilai maksimumnya adalah 3."},
+        ]
+    },
+    "matriks": {
+        "nama": "Matriks & Determinan",
+        "deskripsi": "Konsep Matriks, Operasi Aljabar Matriks, Determinan, dan Invers Matriks Ordo 2×2.",
+        "materi": [
+            ("🧮 Operasi Matriks & Determinan", """
+            <div class="materi-box">
+            • <b>Penjumlahan/Pengurangan:</b> Menjumlahkan elemen-elemen yang seletak (ordo matriks harus sama).<br>
+            • <b>Perkalian Matriks A × B:</b> Mengalikan elemen baris matriks A dengan elemen kolom matriks B.
+            </div>
+            <div class="formula-box">Jika A = [[a, b], [c, d]], maka Determinan det(A) = |A| = (a × d) − (b × c)</div>
+            <div class="formula-box">Invers A⁻¹ = (1 / det(A)) × [[d, −b], [−c, a]]   (syarat: det(A) ≠ 0)</div>
+            """),
+        ],
+        "quiz": [
+            {"soal": "Determinan dari matriks A = [[5, 2], [3, 4]] adalah...", "pilihan": ["14", "26", "-14", "10"], "jawaban": 0, "penjelasan": "det(A) = (5 × 4) - (2 × 3) = 20 - 6 = 14."},
+            {"soal": "Matriks yang nilai determinannya sama dengan nol disebut matriks...", "pilihan": ["Identitas", "Singular", "Simetris", "Diagonal"], "jawaban": 1, "penjelasan": "Matriks singular memiliki det = 0 dan tidak memiliki invers."},
+            {"soal": "Jika matriks A berordo 2×3 dan B berordo 3×4, maka ordo matriks A × B adalah...", "pilihan": ["2×3", "3×3", "2×4", "3×4"], "jawaban": 2, "penjelasan": "Ordo hasil kali: (2×3) × (3×4) = 2×4."},
+            {"soal": "Hasil penjumlahan elemen baris 1 kolom 1 dari [[2, 1], [0, 3]] + [[4, -1], [5, 2]] adalah...", "pilihan": ["0", "5", "6", "8"], "jawaban": 2, "penjelasan": "Elemen (1,1) = 2 + 4 = 6."},
+            {"soal": "Matriks identitas I berordo 2×2 adalah...", "pilihan": ["[[1, 1], [1, 1]]", "[[1, 0], [0, 1]]", "[[0, 1], [1, 0]]", "[[1, 0], [1, 0]]"], "jawaban": 1, "penjelasan": "Matriks identitas memiliki diagonal utama 1 dan elemen lainnya 0."},
+        ]
+    },
+    "transformasi": {
+        "nama": "Transformasi Geometri",
+        "deskripsi": "Pergeseran (Translasi), Pencerminan (Refleksi), Perputaran (Rotasi), dan Perkalian (Dilatasi).",
+        "materi": [
+            ("🔄 Rumus Bayangan Titik P(x, y)", """
+            <div class="formula-box">Translasi T(a, b)  ⟹  P'(x + a, y + b)</div>
+            <div class="formula-box">Refleksi Sumbu-X ⟹ P'(x, −y)  |  Sumbu-Y ⟹ P'(−x, y)  |  Garis y = x ⟹ P'(y, x)</div>
+            <div class="formula-box">Rotasi Pusat O(0,0): +90° ⟹ P'(−y, x)  |  −90° ⟹ P'(y, −x)  |  180° ⟹ P'(−x, −y)</div>
+            <div class="formula-box">Dilatasi [O, k]  ⟹  P'(k·x, k·y)</div>
+            """),
+        ],
+        "quiz": [
+            {"soal": "Bayangan titik P(3, -2) oleh translasi T(4, 5) adalah...", "pilihan": ["P'(7, 3)", "P'(7, -7)", "P'(-1, 3)", "P'(12, -10)"], "jawaban": 0, "penjelasan": "P'(3+4, -2+5) = P'(7, 3)."},
+            {"soal": "Bayangan titik A(4, 6) jika dicerminkan terhadap sumbu-X adalah...", "pilihan": ["A'(-4, 6)", "A'(4, -6)", "A'(-4, -6)", "A'(6, 4)"], "jawaban": 1, "penjelasan": "Refleksi sumbu-X mengubah tanda koordinat y: A'(4, -6)."},
+            {"soal": "Bayangan titik B(2, 5) jika dicerminkan terhadap garis y = x adalah...", "pilihan": ["B'(-2, -5)", "B'(5, 2)", "B'(-5, -2)", "B'(2, -5)"], "jawaban": 1, "penjelasan": "Refleksi terhadap garis y = x menukar posisi x dan y: B'(5, 2)."},
+            {"soal": "Bayangan titik C(3, -4) oleh dilatasi [O, 2] adalah...", "pilihan": ["C'(5, -2)", "C'(6, -8)", "C'(6, -4)", "C'(1.5, -2)"], "jawaban": 1, "penjelasan": "Dilatasi [O, 2]: C'(2×3, 2×(-4)) = C'(6, -8)."},
+            {"soal": "Bayangan titik D(4, 1) oleh rotasi 180° dengan pusat O(0,0) adalah...", "pilihan": ["D'(-1, 4)", "D'(1, -4)", "D'(-4, -1)", "D'(4, -1)"], "jawaban": 2, "penjelasan": "Rotasi 180° terhadap O(0,0) menghasilkan (-x, -y) = (-4, -1)."},
+        ]
+    },
+    "turunan": {
+        "nama": "Limit & Turunan Fungsi Aljabar",
+        "deskripsi": "Konsep Limit Fungsi, Aturan Turunan (Diferensial), Gradien Garis Singgung, dan Titik Stasioner.",
+        "materi": [
+            ("📉 Aturan Dasar Turunan & Aplikasi", """
+            <div class="formula-box">Jika f(x) = a · xⁿ , maka turunan pertamanya: f'(x) = n · a · xⁿ⁻¹</div>
+            <div class="formula-box">Turunan Konstanta: f(x) = c ⟹ f'(x) = 0  |  Gradien Garis Singgung di x = x₁ : m = f'(x₁)</div>
+            <div class="materi-box">
+            • Fungsi naik saat <b>f'(x) &gt; 0</b> dan fungsi turun saat <b>f'(x) &lt; 0</b>.<br>
+            • Titik stasioner (puncak/lembah) dicapai pada saat <b>f'(x) = 0</b>.
+            </div>
+            """),
+        ],
+        "quiz": [
+            {"soal": "Turunan pertama dari fungsi f(x) = 4x³ - 6x² + 5x - 9 adalah...", "pilihan": ["12x² - 12x + 5", "12x² - 6x + 5", "4x² - 12x + 5", "12x³ - 12x"], "jawaban": 0, "penjelasan": "f'(x) = 3(4)x² - 2(6)x + 5 = 12x² - 12x + 5."},
+            {"soal": "Nilai dari limit x → 3 untuk fungsi (2x + 5) adalah...", "pilihan": ["6", "8", "11", "13"], "jawaban": 2, "penjelasan": "Substitusi langsung: 2(3) + 5 = 11."},
+            {"soal": "Gradien garis singgung kurva f(x) = x² + 2x di titik dengan absis x = 2 adalah...", "pilihan": ["4", "6", "8", "10"], "jawaban": 1, "penjelasan": "f'(x) = 2x + 2. Untuk x = 2, maka m = f'(2) = 2(2) + 2 = 6."},
+            {"soal": "Turunan pertama dari fungsi konstan f(x) = 2025 adalah...", "pilihan": ["2025", "2024", "1", "0"], "jawaban": 3, "penjelasan": "Turunan dari konstanta berapa pun adalah 0."},
+            {"soal": "Syarat suatu fungsi f(x) mencapai titik stasioner adalah...", "pilihan": ["f(x) = 0", "f'(x) = 0", "f'(x) > 0", "f'(x) < 0"], "jawaban": 1, "penjelasan": "Titik stasioner tercapai ketika gradien garis singgungnya nol: f'(x) = 0."},
+        ]
+    },
+}
+
+# ============================================================
+# 6. FUNGSI KALKULATOR & SIMULASI PER BAB
+# ============================================================
+def kalkulator_statistika():
+    col_in1, col_in2 = st.columns([2, 1])
+    with col_in1:
+        metode = st.radio("Sumber Data:", ["Contoh Data Otomatis", "Ketik Data Manual", "Upload CSV"], horizontal=True)
+    data = []
+    if metode == "Contoh Data Otomatis":
+        paket = st.selectbox("Pilih Dataset:", [
+            "Nilai Ujian Matematika (30 Siswa)",
+            "Tinggi Badan Siswa (25 Siswa)",
+            "Berat Badan Siswa (20 Siswa)"
+        ])
+        if "Nilai" in paket:
+            data = [45,50,55,60,65,70,75,48,52,58,62,68,72,78,53,57,63,67,73,77,49,54,59,64,69,74,51,56,61,66]
+        elif "Tinggi" in paket:
+            data = [150,155,158,160,162,163,165,165,167,168,170,170,172,173,175,155,160,163,166,169,171,174,152,157,164]
         else:
-            frekuensi = sum(1 for d in data if batas_bawah <= d <= batas_atas)
-        tabel.append({
-            'No': i + 1,
-            'Kelas': f"{batas_bawah:.0f} - {batas_atas:.0f}",
-            'Tepi': f"{tepi_bawah:.1f} - {tepi_atas:.1f}",
-            'xi': titik_tengah,
-            'fi': frekuensi,
-            'fi_xi': frekuensi * titik_tengah,
-            'Tepi Bawah': tepi_bawah,
-            'Tepi Atas': tepi_atas,
-        })
-        batas_bawah = batas_atas + 1
-    fk = 0
-    for row in tabel:
-        fk += row['fi']
-        row['Fk'] = fk
-    return pd.DataFrame(tabel), panjang_kelas
+            data = [45,48,50,52,55,56,58,60,62,63,65,67,68,70,72,55,58,61,64,69]
+    elif metode == "Ketik Data Manual":
+        raw = st.text_area("Masukkan angka (pisahkan dengan koma atau spasi):", "45, 50, 55, 60, 65, 70, 75, 48, 52, 58, 62, 68, 72, 78")
+        try:
+            data = [float(x) for x in raw.replace(",", " ").split() if x.strip()]
+        except ValueError:
+            st.error("⚠️ Pastikan seluruh input berupa angka.")
+    else:
+        up = st.file_uploader("Upload file .csv", type=["csv"])
+        if up:
+            dfc = pd.read_csv(up)
+            kol = st.selectbox("Pilih kolom angka:", dfc.columns)
+            data = pd.to_numeric(dfc[kol], errors="coerce").dropna().tolist()
 
-def hitung_mean(df):
-    return df['fi_xi'].sum() / df['fi'].sum() if df['fi'].sum() > 0 else 0
+    if len(data) < 3:
+        st.warning("Masukkan minimal 3 angka untuk membuat tabel distribusi frekuensi.")
+        return
 
-def hitung_modus(df):
-    idx = df['fi'].idxmax()
-    row = df.loc[idx]
-    p = row['Tepi Atas'] - row['Tepi Bawah']
-    Tb = row['Tepi Bawah']
-    f_sebelum = df.loc[idx - 1, 'fi'] if idx > 0 else 0
-    f_sesudah = df.loc[idx + 1, 'fi'] if idx < len(df) - 1 else 0
-    d1 = row['fi'] - f_sebelum
-    d2 = row['fi'] - f_sesudah
-    if d1 + d2 == 0:
-        return Tb + p * 0.5, Tb, p, d1, d2, row
-    return Tb + p * (d1 / (d1 + d2)), Tb, p, d1, d2, row
+    n = len(data)
+    k_sturges = max(3, math.ceil(1 + 3.322 * math.log10(n)))
+    with col_in2:
+        jumlah_kelas = st.slider("Jumlah Kelas Interval (k):", 3, 15, min(15, k_sturges))
 
-def hitung_median(df):
-    n = df['fi'].sum()
-    setengah_n = n / 2
-    for idx, row in df.iterrows():
-        if row['Fk'] >= setengah_n:
-            p = row['Tepi Atas'] - row['Tepi Bawah']
-            Tb = row['Tepi Bawah']
-            Fk_sebelum = df.loc[idx - 1, 'Fk'] if idx > 0 else 0
-            fi = row['fi']
-            median = Tb + p * ((setengah_n - Fk_sebelum) / fi)
-            return median, Tb, p, setengah_n, Fk_sebelum, fi, row
-    return 0, 0, 0, 0, 0, 0, None
+    data = sorted(data)
+    d_min, d_max = min(data), max(data)
+    panjang_kelas = max(1, math.ceil((d_max - d_min) / jumlah_kelas))
+    rows, bb, fk = [], d_min, 0
+    for i in range(jumlah_kelas):
+        ba = bb + panjang_kelas - 1
+        tb, ta = bb - 0.5, ba + 0.5
+        xi = (bb + ba) / 2
+        fi = sum(1 for d in data if d >= bb) if i == jumlah_kelas - 1 else sum(1 for d in data if bb <= d <= ba)
+        fk += fi
+        rows.append({"No": i+1, "Kelas": f"{bb:.0f} - {ba:.0f}", "Tepi": f"{tb:.1f} - {ta:.1f}", "xi": xi, "fi": fi, "fi_xi": fi*xi, "Fk": fk, "Tb": tb, "Ta": ta})
+        bb = ba + 1
+    df = pd.DataFrame(rows)
+
+    mean_val = df["fi_xi"].sum() / df["fi"].sum()
+    idx_mo = df["fi"].idxmax()
+    r_mo = df.loc[idx_mo]
+    p_kls = r_mo["Ta"] - r_mo["Tb"]
+    d1 = r_mo["fi"] - (df.loc[idx_mo-1, "fi"] if idx_mo > 0 else 0)
+    d2 = r_mo["fi"] - (df.loc[idx_mo+1, "fi"] if idx_mo < len(df)-1 else 0)
+    modus_val = r_mo["Tb"] + p_kls * (0.5 if (d1+d2) == 0 else d1/(d1+d2))
+
+    half_n = n / 2
+    idx_me = df[df["Fk"] >= half_n].index[0]
+    r_me = df.loc[idx_me]
+    fk_sblm = df.loc[idx_me-1, "Fk"] if idx_me > 0 else 0
+    median_val = r_me["Tb"] + p_kls * ((half_n - fk_sblm) / max(1, r_me["fi"]))
+
+    c1, c2, c3 = st.columns(3)
+    c1.markdown(f'<div class="metric-card"><h3>📈 Rata-rata (Mean)</h3><div class="value">{mean_val:.2f}</div></div>', unsafe_allow_html=True)
+    c2.markdown(f'<div class="metric-card"><h3>🏔️ Modus</h3><div class="value">{modus_val:.2f}</div></div>', unsafe_allow_html=True)
+    c3.markdown(f'<div class="metric-card"><h3>📏 Median</h3><div class="value">{median_val:.2f}</div></div>', unsafe_allow_html=True)
+
+    ktab1, ktab2, ktab3, ktab4, ktab5 = st.tabs(["📋 Tabel", "📈 Mean", "🏔️ Modus", "📏 Median", "📊 Grafik"])
+    with ktab1:
+        st.dataframe(df[["No", "Kelas", "Tepi", "xi", "fi", "fi_xi", "Fk"]], use_container_width=True, hide_index=True)
+    with ktab2:
+        st.markdown('<div class="formula-box">x̄ = Σ(fi × xi) / Σfi</div>', unsafe_allow_html=True)
+        for _, r in df.iterrows():
+            st.markdown(f'<div class="step-box">Kelas <b>{r["Kelas"]}</b>: {r["fi"]} × {r["xi"]:.1f} = <b>{r["fi_xi"]:.1f}</b></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="step-box"><b>x̄ = {df["fi_xi"].sum():.1f} / {n} = {mean_val:.2f}</b></div>', unsafe_allow_html=True)
+    with ktab3:
+        st.markdown('<div class="formula-box">Mo = Tb + p × (d1 / (d1 + d2))</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="step-box">Kelas Modus: <b>{r_mo["Kelas"]}</b> (fi = {r_mo["fi"]})<br>Tb = {r_mo["Tb"]:.1f} | p = {p_kls:.1f} | d1 = {d1} | d2 = {d2}<br><b>Mo = {modus_val:.2f}</b></div>', unsafe_allow_html=True)
+    with ktab4:
+        st.markdown('<div class="formula-box">Me = Tb + p × ((½n - Fk) / fi)</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="step-box">Kelas Median: <b>{r_me["Kelas"]}</b> (Fk pertama ≥ {half_n:.1f})<br>Tb = {r_me["Tb"]:.1f} | p = {p_kls:.1f} | ½n = {half_n:.1f} | Fk = {fk_sblm} | fi = {r_me["fi"]}<br><b>Me = {median_val:.2f}</b></div>', unsafe_allow_html=True)
+    with ktab5:
+        g1, g2 = st.columns(2)
+        with g1:
+            st.plotly_chart(px.bar(df, x="Kelas", y="fi", title="Histogram Frekuensi", color="fi", color_continuous_scale="Blues"), use_container_width=True)
+        with g2:
+            fig_o = go.Figure(go.Scatter(x=df["Ta"], y=df["Fk"], mode="lines+markers", line=dict(width=3, color="#4f46e5")))
+            fig_o.update_layout(title="Kurva Ogive Positif", xaxis_title="Tepi Atas", yaxis_title="Fk")
+            st.plotly_chart(fig_o, use_container_width=True)
+        fig_comp = go.Figure(go.Bar(
+            x=["Mean", "Median", "Modus"], y=[mean_val, median_val, modus_val],
+            marker_color=["#4f46e5", "#7c3aed", "#ec4899"],
+            text=[f"{mean_val:.2f}", f"{median_val:.2f}", f"{modus_val:.2f}"], textposition="auto"
+        ))
+        fig_comp.update_layout(title="Perbandingan Mean, Median, dan Modus")
+        st.plotly_chart(fig_comp, use_container_width=True)
+
+def kalkulator_geometri():
+    gtab1, gtab2 = st.tabs(["🧊 Simulasi Kubus 3D Interaktif (Dimensi Tiga)", "📦 Kalkulator Volume & Luas Bangun Ruang"])
+    with gtab1:
+        st.info("💡 Sentuh/klik tahan dan geser gambar kubus di bawah ini untuk memutarnya secara 3 Dimensi!")
+        c_kiri, c_kanan = st.columns([1, 2])
+        with c_kiri:
+            s = st.slider("Panjang Rusuk Kubus ABCD.EFGH (cm):", 2, 20, 8)
+            pilihan_garis = st.radio("Tampilkan Garis Jarak pada Kubus:", [
+                "Diagonal Bidang AC (s√2)",
+                "Diagonal Ruang AG (s√3)",
+                "Jarak Titik A ke Tengah BC (½s√5)",
+                "Jarak Titik A ke Tengah Bidang EFGH (½s√6)"
+            ])
+            if "AC" in pilihan_garis:
+                hasil, ket, gx, gy, gz = s*math.sqrt(2), f"{s}√2", [0, s], [0, s], [0, 0]
+            elif "AG" in pilihan_garis:
+                hasil, ket, gx, gy, gz = s*math.sqrt(3), f"{s}√3", [0, s], [0, s], [0, s]
+            elif "BC" in pilihan_garis:
+                hasil, ket, gx, gy, gz = 0.5*s*math.sqrt(5), f"½({s})√5", [0, s], [0, 0.5*s], [0, 0]
+            else:
+                hasil, ket, gx, gy, gz = 0.5*s*math.sqrt(6), f"½({s})√6", [0, 0.5*s], [0, 0.5*s], [0, s]
+
+            st.markdown(f'<div class="metric-card"><h3>📏 Panjang Garis Merah</h3><div class="value">{hasil:.2f} cm</div><p>Bentuk Akar: <b>{ket} cm</b></p></div>', unsafe_allow_html=True)
+
+        with c_kanan:
+            pts = {"A":(0,0,0), "B":(s,0,0), "C":(s,s,0), "D":(0,s,0), "E":(0,0,s), "F":(s,0,s), "G":(s,s,s), "H":(0,s,s)}
+            edges = [("A","B"),("B","C"),("C","D"),("D","A"),("E","F"),("F","G"),("G","H"),("H","E"),("A","E"),("B","F"),("C","G"),("D","H")]
+            ex, ey, ez = [], [], []
+            for u, v in edges:
+                ex += [pts[u][0], pts[v][0], None]
+                ey += [pts[u][1], pts[v][1], None]
+                ez += [pts[u][2], pts[v][2], None]
+
+            fig3d = go.Figure()
+            fig3d.add_trace(go.Scatter3d(x=ex, y=ey, z=ez, mode="lines", line=dict(color="#4f46e5", width=6), name="Rusuk Kubus"))
+            fig3d.add_trace(go.Scatter3d(
+                x=[p[0] for p in pts.values()], y=[p[1] for p in pts.values()], z=[p[2] for p in pts.values()],
+                mode="markers+text", text=list(pts.keys()), textposition="top center",
+                marker=dict(size=6, color="#1e293b"), textfont=dict(size=15, color="#dc2626"), name="Titik Sudut"
+            ))
+            fig3d.add_trace(go.Scatter3d(x=gx, y=gy, z=gz, mode="lines+markers", line=dict(color="#ef4444", width=8, dash="dash"), marker=dict(size=8, color="#ef4444"), name="Garis Jarak"))
+            fig3d.update_layout(height=480, margin=dict(l=0, r=0, b=0, t=30), title=f"Visualisasi 3D Kubus ABCD.EFGH (s = {s} cm)")
+            st.plotly_chart(fig3d, use_container_width=True)
+
+    with gtab2:
+        bangun = st.selectbox("Pilih Bangun Ruang:", ["Kubus", "Balok", "Tabung", "Kerucut", "Bola"])
+        if bangun == "Kubus":
+            r = st.number_input("Rusuk s (cm):", 1.0, 500.0, 6.0)
+            vol, lp = r**3, 6*(r**2)
+        elif bangun == "Balok":
+            c1, c2, c3 = st.columns(3)
+            p = c1.number_input("Panjang p:", 1.0, 500.0, 10.0)
+            l = c2.number_input("Lebar l:", 1.0, 500.0, 5.0)
+            t = c3.number_input("Tinggi t:", 1.0, 500.0, 4.0)
+            vol, lp = p*l*t, 2*(p*l + p*t + l*t)
+        elif bangun == "Tabung":
+            c1, c2 = st.columns(2)
+            r = c1.number_input("Jari-jari r:", 1.0, 500.0, 7.0)
+            t = c2.number_input("Tinggi t:", 1.0, 500.0, 10.0)
+            vol, lp = math.pi*(r**2)*t, 2*math.pi*r*(r+t)
+        elif bangun == "Kerucut":
+            c1, c2 = st.columns(2)
+            r = c1.number_input("Jari-jari r:", 1.0, 500.0, 7.0)
+            t = c2.number_input("Tinggi t:", 1.0, 500.0, 24.0)
+            pelukis = math.sqrt(r**2 + t**2)
+            vol, lp = (1/3)*math.pi*(r**2)*t, math.pi*r*(r + pelukis)
+        else:
+            r = st.number_input("Jari-jari Bola r:", 1.0, 500.0, 7.0)
+            vol, lp = (4/3)*math.pi*(r**3), 4*math.pi*(r**2)
+
+        k1, k2 = st.columns(2)
+        k1.markdown(f'<div class="metric-card"><h3>📦 Volume {bangun}</h3><div class="value">{vol:.2f} cm³</div></div>', unsafe_allow_html=True)
+        k2.markdown(f'<div class="metric-card"><h3>📐 Luas Permukaan</h3><div class="value">{lp:.2f} cm²</div></div>', unsafe_allow_html=True)
+
+def kalkulator_peluang():
+    ptab1, ptab2 = st.tabs(["🔢 Kalkulator Permutasi & Kombinasi", "🎲 Simulasi Percobaan Lempar Dadu"])
+    with ptab1:
+        c1, c2 = st.columns(2)
+        n = int(c1.number_input("Jumlah total unsur (n):", 1, 20, 6))
+        r = int(c2.number_input("Unsur yang dipilih (r):", 0, n, min(2, n)))
+        n_fak = math.factorial(n)
+        perm = math.factorial(n) // math.factorial(n - r)
+        komb = perm // math.factorial(r)
+        k1, k2, k3 = st.columns(3)
+        k1.markdown(f'<div class="metric-card"><h3>{n}! (Faktorial)</h3><div class="value">{n_fak:,}</div></div>', unsafe_allow_html=True)
+        k2.markdown(f'<div class="metric-card"><h3>Permutasi P({n},{r})</h3><div class="value">{perm:,}</div></div>', unsafe_allow_html=True)
+        k3.markdown(f'<div class="metric-card"><h3>Kombinasi C({n},{r})</h3><div class="value">{komb:,}</div></div>', unsafe_allow_html=True)
+    with ptab2:
+        lemparan = st.slider("Banyaknya pelemparan sebuah dadu (N):", 12, 1200, 120, step=12)
+        hasil_dadu = [random.randint(1, 6) for _ in range(lemparan)]
+        label_mata = [f"Mata {i}" for i in range(1, 7)]
+        frek_muncul = [hasil_dadu.count(i) for i in range(1, 7)]
+        frek_harapan = [lemparan / 6.0] * 6
+        fig_d = go.Figure(data=[
+            go.Bar(name="Frekuensi Simulasi", x=label_mata, y=frek_muncul, marker_color="#4f46e5"),
+            go.Bar(name="Frekuensi Harapan Teoretis", x=label_mata, y=frek_harapan, marker_color="#f59e0b")
+        ])
+        fig_d.update_layout(barmode="group", title=f"Hasil Simulasi {lemparan} Kali Lempar Dadu")
+        st.plotly_chart(fig_d, use_container_width=True)
+
+def kalkulator_eksponen():
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("#### ⚡ Hitung Eksponen & Grafik f(x) = aˣ")
+        basis = st.slider("Pilih basis a:", 0.2, 5.0, 2.0, 0.1)
+        pangkat = st.number_input("Masukkan pangkat x:", -10.0, 10.0, 3.0)
+        st.markdown(f'<div class="metric-card"><h3>Nilai ({basis})^{pangkat}</h3><div class="value">{basis**pangkat:.4f}</div></div>', unsafe_allow_html=True)
+    with c2:
+        st.markdown("#### 🪵 Hitung Logaritma (ᵃlog b)")
+        a_log = st.number_input("Basis a (a > 0, a ≠ 1):", 0.1, 100.0, 2.0)
+        b_log = st.number_input("Numerus b (b > 0):", 0.01, 100000.0, 8.0)
+        if abs(a_log - 1.0) > 1e-9:
+            val_log = math.log(b_log, a_log)
+            st.markdown(f'<div class="metric-card"><h3>Nilai {a_log} log {b_log}</h3><div class="value">{val_log:.4f}</div></div>', unsafe_allow_html=True)
+        else:
+            st.warning("Basis logaritma tidak boleh bernilai 1.")
+    xs = np.linspace(-3, 4, 100)
+    fig = go.Figure(go.Scatter(x=xs, y=basis**xs, mode="lines", line=dict(width=3, color="#4f46e5")))
+    fig.update_layout(title=f"Grafik Fungsi Eksponen f(x) = ({basis})ˣ", xaxis_title="x", yaxis_title="f(x)")
+    st.plotly_chart(fig, use_container_width=True)
+
+def kalkulator_barisan():
+    jenis = st.radio("Pilih Jenis Barisan:", ["Barisan & Deret Aritmetika", "Barisan & Deret Geometri"], horizontal=True)
+    c1, c2, c3 = st.columns(3)
+    a = c1.number_input("Suku pertama (a):", -500.0, 500.0, 3.0)
+    n = int(c3.slider("Suku ke-n yang dicari:", 2, 20, 8))
+    if "Aritmetika" in jenis:
+        b = c2.number_input("Beda (b):", -100.0, 100.0, 4.0)
+        suku_list = [a + i*b for i in range(n)]
+    else:
+        r = c2.number_input("Rasio (r):", -10.0, 10.0, 2.0)
+        suku_list = [a * (r**i) for i in range(n)]
+    un, sn = suku_list[-1], sum(suku_list)
+
+    k1, k2 = st.columns(2)
+    k1.markdown(f'<div class="metric-card"><h3>Suku ke-{n} (U{n})</h3><div class="value">{un:,.2f}</div></div>', unsafe_allow_html=True)
+    k2.markdown(f'<div class="metric-card"><h3>Jumlah {n} Suku (S{n})</h3><div class="value">{sn:,.2f}</div></div>', unsafe_allow_html=True)
+    teks_barisan = ", ".join(f"{x:g}" for x in suku_list)
+    st.markdown(f'<div class="step-box"><b>Urutan Barisan:</b> {teks_barisan}</div>', unsafe_allow_html=True)
+    fig = go.Figure(go.Bar(x=[f"U{i+1}" for i in range(n)], y=suku_list, marker_color="#4f46e5"))
+    fig.update_layout(title="Visualisasi Pertumbuhan Nilai Suku", xaxis_title="Urutan Suku", yaxis_title="Nilai")
+    st.plotly_chart(fig, use_container_width=True)
+
+def kalkulator_trigonometri():
+    t1, t2 = st.tabs(["📐 Segitiga Siku-siku", "🌊 Grafik Gelombang Sinus & Cosinus"])
+    with t1:
+        c1, c2 = st.columns(2)
+        depan = c1.number_input("Sisi Depan sudut θ:", 0.1, 500.0, 3.0)
+        samping = c2.number_input("Sisi Samping sudut θ:", 0.1, 500.0, 4.0)
+        miring = math.sqrt(depan**2 + samping**2)
+        sudut_deg = math.degrees(math.atan2(depan, samping))
+        st.markdown(f'<div class="step-box">Sisi Miring = √({depan}² + {samping}²) = <b>{miring:.2f}</b> &nbsp;|&nbsp; Besar Sudut θ ≈ <b>{sudut_deg:.2f}°</b></div>', unsafe_allow_html=True)
+        k1, k2, k3 = st.columns(3)
+        k1.metric("sin θ (De/Mi)", f"{depan/miring:.4f}")
+        k2.metric("cos θ (Sa/Mi)", f"{samping/miring:.4f}")
+        k3.metric("tan θ (De/Sa)", f"{depan/samping:.4f}")
+    with t2:
+        c1, c2 = st.columns(2)
+        amp = c1.slider("Amplitudo (A):", 1.0, 5.0, 2.0, 0.5)
+        k_freq = c2.slider("Banyak gelombang (k):", 1, 5, 1)
+        deg = np.linspace(0, 360, 361)
+        rad = np.radians(deg)
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=deg, y=amp*np.sin(k_freq*rad), name=f"{amp} sin({k_freq}x)"))
+        fig.add_trace(go.Scatter(x=deg, y=amp*np.cos(k_freq*rad), name=f"{amp} cos({k_freq}x)"))
+        fig.update_layout(title="Grafik Fungsi Trigonometri (0° - 360°)", xaxis_title="Sudut (°)", yaxis_title="y")
+        st.plotly_chart(fig, use_container_width=True)
+
+def kalkulator_matriks():
+    st.markdown("#### 🧮 Kalkulator Matriks Ordo 2 × 2")
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.markdown("**Matriks A**")
+        a1, a2 = st.columns(2)
+        a11 = a1.number_input("a11", value=4.0)
+        a12 = a2.number_input("a12", value=2.0)
+        a21 = a1.number_input("a21", value=3.0)
+        a22 = a2.number_input("a22", value=2.0)
+    with col_b:
+        st.markdown("**Matriks B**")
+        b1, b2 = st.columns(2)
+        b11 = b1.number_input("b11", value=1.0)
+        b12 = b2.number_input("b12", value=5.0)
+        b21 = b1.number_input("b21", value=2.0)
+        b22 = b2.number_input("b22", value=3.0)
+
+    A = np.array([[a11, a12], [a21, a22]])
+    B = np.array([[b11, b12], [b21, b22]])
+    det_a = a11*a22 - a12*a21
+    st.markdown(f'<div class="metric-card"><h3>Determinan Matriks A</h3><div class="value">{det_a:.2f}</div></div>', unsafe_allow_html=True)
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.write("**Penjumlahan (A + B):**")
+        st.dataframe(pd.DataFrame(A + B), hide_index=True)
+    with c2:
+        st.write("**Perkalian (A × B):**")
+        st.dataframe(pd.DataFrame(A @ B), hide_index=True)
+    with c3:
+        st.write("**Invers Matriks A (A⁻¹):**")
+        if det_a != 0:
+            inv_a = (1/det_a) * np.array([[a22, -a12], [-a21, a11]])
+            st.dataframe(pd.DataFrame(np.round(inv_a, 3)), hide_index=True)
+        else:
+            st.warning("Matriks singular (det = 0), tidak memiliki invers.")
+
+def kalkulator_transformasi():
+    st.markdown("#### 🔄 Simulator Bayangan Titik P(x, y) pada Bidang Kartesius")
+    c1, c2, c3 = st.columns(3)
+    px_in = c1.number_input("Koordinat x awal:", -20.0, 20.0, 3.0)
+    py_in = c2.number_input("Koordinat y awal:", -20.0, 20.0, 2.0)
+    jenis = c3.selectbox("Jenis Transformasi:", [
+        "Translasi T(a, b)", "Refleksi Sumbu-X", "Refleksi Sumbu-Y",
+        "Refleksi Garis y = x", "Rotasi +90° Pusat O(0,0)", "Rotasi 180° Pusat O(0,0)", "Dilatasi [O, k]"
+    ])
+    if "Translasi" in jenis:
+        ta = st.slider("Geser mendatar (a):", -10.0, 10.0, 4.0)
+        tb = st.slider("Geser tegak (b):", -10.0, 10.0, -3.0)
+        bx, by = px_in + ta, py_in + tb
+    elif "Sumbu-X" in jenis:
+        bx, by = px_in, -py_in
+    elif "Sumbu-Y" in jenis:
+        bx, by = -px_in, py_in
+    elif "y = x" in jenis:
+        bx, by = py_in, px_in
+    elif "+90°" in jenis:
+        bx, by = -py_in, px_in
+    elif "180°" in jenis:
+        bx, by = -px_in, -py_in
+    else:
+        k = st.slider("Faktor skala (k):", -4.0, 4.0, 2.0, 0.5)
+        bx, by = k * px_in, k * py_in
+
+    st.markdown(f'<div class="metric-card"><h3>Koordinat Bayangan P\'</h3><div class="value">P\'({bx:g}, {by:g})</div><p>Titik Awal: P({px_in:g}, {py_in:g})</p></div>', unsafe_allow_html=True)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=[px_in], y=[py_in], mode="markers+text", text=[f"P({px_in:g},{py_in:g})"], textposition="top center", marker=dict(size=14, color="#4f46e5"), name="Titik Awal P"))
+    fig.add_trace(go.Scatter(x=[bx], y=[by], mode="markers+text", text=[f"P'({bx:g},{by:g})"], textposition="top center", marker=dict(size=14, color="#ef4444"), name="Bayangan P'"))
+    fig.update_layout(xaxis=dict(zeroline=True, zerolinewidth=2), yaxis=dict(zeroline=True, zerolinewidth=2), title="Posisi Titik Awal (Biru) & Bayangan (Merah)")
+    st.plotly_chart(fig, use_container_width=True)
+
+def kalkulator_turunan():
+    st.markdown("#### 📉 Kalkulator Turunan & Garis Singgung Kurva f(x) = ax³ + bx² + cx + d")
+    c1, c2, c3, c4 = st.columns(4)
+    a = c1.number_input("Koefisien a (x³):", -10.0, 10.0, 0.0)
+    b = c2.number_input("Koefisien b (x²):", -10.0, 10.0, 1.0)
+    c = c3.number_input("Koefisien c (x):", -20.0, 20.0, -2.0)
+    d = c4.number_input("Konstanta d:", -50.0, 50.0, 1.0)
+    x0 = st.slider("Pilih titik singgung absis x₀:", -5.0, 5.0, 2.0, 0.5)
+
+    y0 = a*(x0**3) + b*(x0**2) + c*x0 + d
+    m = 3*a*(x0**2) + 2*b*x0 + c
+    st.markdown(f'<div class="formula-box">Turunan Pertama: f\'(x) = {3*a:g}x² + ({2*b:g})x + ({c:g})</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-card"><h3>Gradien Garis Singgung di x₀ = {x0:g}</h3><div class="value">m = {m:.2f}</div><p>Titik Singgung: ({x0:g}, {y0:.2f})</p></div>', unsafe_allow_html=True)
+
+    xs = np.linspace(x0 - 4, x0 + 4, 200)
+    ys = a*(xs**3) + b*(xs**2) + c*xs + d
+    y_singgung = m*(xs - x0) + y0
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=xs, y=ys, name="Kurva f(x)", line=dict(width=3, color="#4f46e5")))
+    fig.add_trace(go.Scatter(x=xs, y=y_singgung, name="Garis Singgung", line=dict(width=2, dash="dash", color="#ef4444")))
+    fig.add_trace(go.Scatter(x=[x0], y=[y0], mode="markers", marker=dict(size=11, color="#ef4444"), name="Titik Singgung"))
+    fig.update_layout(title="Kurva f(x) dan Garis Singgungnya", xaxis_title="x", yaxis_title="y")
+    st.plotly_chart(fig, use_container_width=True)
 
 # ============================================================
-# SIDEBAR NAVIGASI (UMUM)
+# 7. SIDEBAR NAVIGASI (TINGKAT KELAS -> BAB MATERI -> KEGIATAN)
 # ============================================================
 with st.sidebar:
-    st.markdown(f"## 🎓 {MATA_PELAJARAN} Interaktif")
+    st.markdown(f"## 🎓 {NAMA_APLIKASI}")
     if NAMA_GURU_SEKOLAH.strip():
         st.caption(NAMA_GURU_SEKOLAH)
+
+    st.session_state.dark_mode = st.toggle("🌙 Dark Mode", value=st.session_state.dark_mode)
     st.markdown("---")
 
-    if st.toggle("🌙 Dark Mode", value=st.session_state.dark_mode):
-        st.session_state.dark_mode = True
-    else:
-        st.session_state.dark_mode = False
-    st.markdown("---")
+    daftar_nama_kelas = list(KURIKULUM_KELAS.keys())
+    kelas_aktif = st.radio("🏫 Pilih Tingkat Kelas:", daftar_nama_kelas, index=KELAS_AWAL_INDEX, horizontal=True)
 
+    daftar_bab_kelas = KURIKULUM_KELAS[kelas_aktif]
+    label_bab_list = [label for _, label in daftar_bab_kelas]
+    bab_label_aktif = st.radio(f"📚 Pilih Bab Materi ({kelas_aktif}):", label_bab_list)
+    id_bab_aktif = dict((lbl, kode) for kode, lbl in daftar_bab_kelas)[bab_label_aktif]
+
+    st.markdown("---")
     halaman = st.radio(
-        "📌 Pilih Menu Belajar:",
-        ["🏠 Beranda", "📖 Materi", "📄 LKPD", "🧮 Kalkulator", "📝 Quiz"],
+        "📌 Pilih Kegiatan Belajar:",
+        ["🏠 Beranda", "📖 Materi", "📄 LKPD", "🧮 Kalkulator & Simulasi", "📝 Quiz"],
         index=0
     )
-    st.markdown("---")
-    st.markdown("### ℹ️ Tentang Portal")
-    st.markdown(f"""
-    **{NAMA_APLIKASI} {MATA_PELAJARAN}** untuk mendukung kegiatan belajar siswa secara interaktif, mandiri, maupun berkelompok.
-    """)
+
+info_bab = DATA_BAB[id_bab_aktif]
+badge_html = f'<div class="badge-aktif">🏫 {kelas_aktif} &nbsp;│&nbsp; {bab_label_aktif}</div>'
 
 # ============================================================
-# HALAMAN BERANDA
+# 8. TAMPILAN HALAMAN UTAMA BERDASARKAN KEGIATAN & BAB AKTIF
 # ============================================================
 if halaman == "🏠 Beranda":
-    info_guru_html = f"<p style='font-size:0.95rem; opacity:0.9;'>{NAMA_GURU_SEKOLAH}</p>" if NAMA_GURU_SEKOLAH.strip() else ""
+    guru_sub = f"<p style='font-size:0.95rem; opacity:0.92;'>{NAMA_GURU_SEKOLAH}</p>" if NAMA_GURU_SEKOLAH.strip() else ""
     st.markdown(f"""
     <div class="main-header">
-        <h1>🎓 Selamat Datang!</h1>
-        <p>{NAMA_APLIKASI} {MATA_PELAJARAN} — {SUBJUDUL_BERANDA}</p>
-        {info_guru_html}
+        {badge_html}
+        <h1>🎓 {NAMA_APLIKASI}</h1>
+        <p>Bab Aktif Saat Ini: <b>{info_bab['nama']}</b> ({kelas_aktif})</p>
+        {guru_sub}
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### 🎯 Menu Pembelajaran yang Tersedia")
+    st.markdown("### 🗺️ Peta Kurikulum Materi Pembelajaran (Kelas 10, 11 & 12)")
+    st.caption("Pilih Tingkat Kelas dan Bab Materi melalui panel menu di sebelah kiri layar.")
 
-    col1, col2, col3, col4 = st.columns(4)
+    k_col1, k_col2, k_col3 = st.columns(3)
+    for kol, nama_kls in zip([k_col1, k_col2, k_col3], ["Kelas 10", "Kelas 11", "Kelas 12"]):
+        isi_pohon = "<br>".join([
+            f"{'└──' if idx == len(KURIKULUM_KELAS[nama_kls])-1 else '├──'} {lbl}"
+            for idx, (_, lbl) in enumerate(KURIKULUM_KELAS[nama_kls])
+        ])
+        sorot = "border: 2px solid #4f46e5;" if nama_kls == kelas_aktif else ""
+        with kol:
+            st.markdown(f"""
+            <div class="materi-box" style="{sorot}">
+                <h3 style="margin-top:0;">🏫 {nama_kls}</h3>
+                <div style="line-height:1.9; font-size:0.95rem;">{isi_pohon}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    with col1:
-        st.markdown("""
-        <div class="metric-card">
-            <h3>📖 Materi</h3>
-            <p>Pelajari modul bahan ajar guru & ringkasan konsep materi pembelajaran.</p>
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown("### 🎯 Fasilitas Belajar pada Setiap Bab")
+    f1, f2, f3, f4 = st.columns(4)
+    f1.markdown('<div class="metric-card"><h3>📖 Materi</h3><p>Modul bahan ajar guru & ringkasan konsep tiap bab.</p></div>', unsafe_allow_html=True)
+    f2.markdown('<div class="metric-card"><h3>📄 LKPD</h3><p>Lembar kerja siswa sesuai bab aktif & pratinjau langsung.</p></div>', unsafe_allow_html=True)
+    f3.markdown('<div class="metric-card"><h3>🧮 Simulasi</h3><p>Kalkulator interaktif, grafik 2D & bangun ruang 3D.</p></div>', unsafe_allow_html=True)
+    f4.markdown('<div class="metric-card"><h3>📝 Quiz</h3><p>Evaluasi latihan soal otomatis sesuai bab yang dipilih.</p></div>', unsafe_allow_html=True)
 
-    with col2:
-        st.markdown("""
-        <div class="metric-card">
-            <h3>📄 LKPD</h3>
-            <p>Baca & unduh Lembar Kerja Peserta Didik serta kumpulkan tugas.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col3:
-        st.markdown("""
-        <div class="metric-card">
-            <h3>🧮 Kalkulator</h3>
-            <p>Simulasi eksplorasi perhitungan & visualisasi grafik secara otomatis.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col4:
-        st.markdown("""
-        <div class="metric-card">
-            <h3>📝 Quiz</h3>
-            <p>Uji pemahamanmu dengan latihan soal interaktif dan lihat skormu!</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown("---")
-    st.markdown("### 🚀 Petunjuk Penggunaan")
-    st.markdown("""
-    1. 👈 Buka **panel menu di kiri** (klik tanda panah `>>` di pojok kiri atas jika memakai HP)
-    2. 📖 Pilih **Materi** untuk membaca bahan ajar dan konsep rumus
-    3. 📄 Pilih **LKPD** untuk melihat & mengunduh lembar kerja siswa
-    4. 🧮 Pilih **Kalkulator** untuk mencoba simulasi perhitungan & grafik
-    5. 📝 Pilih **Quiz** untuk mengerjakan latihan evaluasi mandiri
-    """)
-
-# ============================================================
-# HALAMAN MATERI
-# ============================================================
 elif halaman == "📖 Materi":
     st.markdown(f"""
     <div class="main-header">
-        <h1>📖 Materi Pembelajaran</h1>
-        <p>{SUBJUDUL_MATERI}</p>
+        {badge_html}
+        <h1>📖 Materi: {info_bab['nama']}</h1>
+        <p>{info_bab['deskripsi']}</p>
     </div>
     """, unsafe_allow_html=True)
 
     ekstensi_materi = (".pdf", ".pptx", ".ppt", ".docx", ".doc", ".png", ".jpg", ".jpeg")
-    daftar_materi_guru = sorted([
-        f for f in os.listdir(".")
-        if f.lower().endswith(ekstensi_materi) and not adalah_file_lkpd(f)
-    ])
+    semua_materi = sorted([f for f in os.listdir(".") if f.lower().endswith(ekstensi_materi) and not adalah_file_lkpd(f)])
+    materi_bab = [f for f in semua_materi if file_cocok_dengan_bab(f, id_bab_aktif, kelas_aktif) is True]
+    materi_umum = [f for f in semua_materi if file_cocok_dengan_bab(f, id_bab_aktif, kelas_aktif) is None]
 
-    def render_bahan_ajar_guru():
+    judul_tabs = ["📚 Bahan Ajar Guru"] + [j for j, _ in info_bab["materi"]]
+    tabs_obj = st.tabs(judul_tabs)
+
+    with tabs_obj[0]:
         if LINK_VIDEO_YOUTUBE.strip():
             st.markdown("### 🎬 Video Pembelajaran")
             st.video(LINK_VIDEO_YOUTUBE.strip())
             st.markdown("---")
 
-        st.markdown("### 📚 Modul & Bahan Ajar")
-        if not daftar_materi_guru:
+        daftar_tampil = materi_bab + materi_umum
+        if not daftar_tampil:
             st.info(
-                "ℹ️ Saat ini belum ada file modul tambahan yang diunggah. "
-                "Silakan pelajari ringkasan konsep pada tab materi yang tersedia."
+                f"ℹ️ Belum ada file modul tambahan yang diunggah untuk {info_bab['nama']}. "
+                f"Silakan pelajari ringkasan konsep pada tab di sebelah kanan atas."
             )
         else:
-            for idx, nama_file in enumerate(daftar_materi_guru):
-                with open(nama_file, "rb") as file_data:
-                    isi_bytes = file_data.read()
-
-                nama_kecil = nama_file.lower()
-                if nama_kecil.endswith(".pdf"):
-                    ikon, mime_type = "📕", "application/pdf"
-                elif nama_kecil.endswith((".pptx", ".ppt")):
-                    ikon, mime_type = "📙", "application/octet-stream"
-                elif nama_kecil.endswith((".png", ".jpg", ".jpeg")):
-                    ikon, mime_type = "🖼️", "image/png"
-                else:
-                    ikon, mime_type = "📘", "application/octet-stream"
-
-                col_nama, col_unduh = st.columns([3, 1])
-                with col_nama:
-                    st.markdown(f"#### {ikon} {nama_file}")
-                with col_unduh:
-                    st.download_button(
-                        label="⬇️ Download Materi",
-                        data=isi_bytes,
-                        file_name=nama_file,
-                        mime=mime_type,
-                        key=f"unduh_materi_{idx}",
-                        use_container_width=True,
-                        type="primary"
-                    )
-
-                if nama_kecil.endswith(".pdf"):
-                    with st.expander(f"👁️ Baca Materi {nama_file} di Layar", expanded=True):
+            for idx, nama_file in enumerate(daftar_tampil):
+                with open(nama_file, "rb") as fd:
+                    isi_bytes = fd.read()
+                nk = nama_file.lower()
+                ikon = "📕" if nk.endswith(".pdf") else ("🖼️" if nk.endswith((".png", ".jpg", ".jpeg")) else "📘")
+                c_nm, c_dl = st.columns([3, 1])
+                c_nm.markdown(f"#### {ikon} {nama_file}")
+                c_dl.download_button("⬇️ Download Materi", isi_bytes, file_name=nama_file, key=f"dl_m_{id_bab_aktif}_{idx}", use_container_width=True, type="primary")
+                if nk.endswith(".pdf"):
+                    with st.expander(f"👁️ Baca {nama_file} di Layar", expanded=True):
                         tampilkan_pratinjau_pdf(isi_bytes)
-                elif nama_kecil.endswith((".png", ".jpg", ".jpeg")):
+                elif nk.endswith((".png", ".jpg", ".jpeg")):
                     st.image(isi_bytes, caption=nama_file, use_container_width=True)
-
                 st.markdown("---")
 
-    if TAMPILKAN_RINGKASAN_STATISTIKA:
-        materi_tab0, materi_tab1, materi_tab2, materi_tab3, materi_tab4 = st.tabs([
-            "📚 Bahan Ajar Guru", "📌 Pengantar", "📈 Rata-rata", "🏔️ Modus", "📏 Median"
-        ])
+    for idx_t, (_, konten_html) in enumerate(info_bab["materi"], start=1):
+        with tabs_obj[idx_t]:
+            st.markdown(konten_html, unsafe_allow_html=True)
 
-        with materi_tab0:
-            render_bahan_ajar_guru()
-
-        with materi_tab1:
-            st.markdown("### Apa itu Data Kelompok?")
-            st.markdown("""
-            <div class="materi-box">
-            <b>Data kelompok</b> adalah data yang disajikan dalam bentuk
-            <b>kelas-kelas interval</b>, bukan data individual satu per satu.<br><br>
-            Data kelompok digunakan ketika jumlah data cukup banyak sehingga
-            lebih praktis disajikan dalam bentuk tabel distribusi frekuensi.
-            </div>
-            """, unsafe_allow_html=True)
-
-            st.markdown("### Istilah Penting")
-            st.markdown("""
-            | Istilah | Simbol | Keterangan |
-            |---------|--------|------------|
-            | Frekuensi | fi | Banyaknya data dalam setiap kelas |
-            | Titik Tengah | xi | Nilai tengah setiap kelas = (batas bawah + batas atas) / 2 |
-            | Tepi Bawah | Tb | Batas bawah - 0.5 |
-            | Tepi Atas | Ta | Batas atas + 0.5 |
-            | Panjang Kelas | p | Selisih tepi atas dan tepi bawah |
-            | Frekuensi Kumulatif | Fk | Jumlah frekuensi dari kelas pertama sampai kelas tertentu |
-            """)
-
-            st.markdown("### Aturan Sturges")
-            st.markdown("""
-            <div class="materi-box">
-            Untuk menentukan <b>jumlah kelas</b>, digunakan rumus:<br><br>
-            <b>k = 1 + 3,322 × log(n)</b><br><br>
-            Dimana <b>n</b> = jumlah data.<br>
-            <b>Contoh:</b> Jika n = 30, maka k = 1 + 3,322 × log(30) = 1 + 4,91 = 5,91 ≈ 6 kelas
-            </div>
-            """, unsafe_allow_html=True)
-
-        with materi_tab2:
-            st.markdown("### 📈 Rata-rata (Mean) Data Kelompok")
-            st.markdown('<div class="formula-box">x̄ = Σ(fi × xi) / Σfi</div>', unsafe_allow_html=True)
-            st.markdown("""
-            <div class="materi-box">
-            <b>Langkah-langkah:</b><br>
-            1. Tentukan titik tengah (xi) setiap kelas: xi = (batas bawah + batas atas) / 2<br>
-            2. Kalikan frekuensi dengan titik tengah (fi × xi)<br>
-            3. Jumlahkan semua fi × xi → Σ(fi × xi)<br>
-            4. Bagi Σ(fi × xi) dengan total frekuensi (Σfi)
-            </div>
-            """, unsafe_allow_html=True)
-
-        with materi_tab3:
-            st.markdown("### 🏔️ Modus Data Kelompok")
-            st.markdown('<div class="formula-box">Mo = Tb + p × (d1 / (d1 + d2))</div>', unsafe_allow_html=True)
-            st.markdown("""
-            <div class="materi-box">
-            <b>Keterangan:</b><br>
-            • <b>Tb</b> = Tepi bawah kelas modus (kelas dengan frekuensi paling tinggi)<br>
-            • <b>p</b> = Panjang kelas<br>
-            • <b>d1</b> = Selisih frekuensi kelas modus dengan kelas <b>sebelumnya</b><br>
-            • <b>d2</b> = Selisih frekuensi kelas modus dengan kelas <b>sesudahnya</b>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with materi_tab4:
-            st.markdown("### 📏 Median Data Kelompok")
-            st.markdown('<div class="formula-box">Me = Tb + p × ((½n - Fk) / fi)</div>', unsafe_allow_html=True)
-            st.markdown("""
-            <div class="materi-box">
-            <b>Keterangan:</b><br>
-            • <b>½n</b> = Setengah dari jumlah total data<br>
-            • <b>Kelas Median</b> = Kelas pertama yang nilai Fk-nya ≥ ½n<br>
-            • <b>Tb</b> = Tepi bawah kelas median<br>
-            • <b>p</b> = Panjang kelas<br>
-            • <b>Fk</b> = Frekuensi kumulatif <b>sebelum</b> kelas median<br>
-            • <b>fi</b> = Frekuensi pada kelas median
-            </div>
-            """, unsafe_allow_html=True)
-    else:
-        render_bahan_ajar_guru()
-
-# ============================================================
-# HALAMAN LKPD
-# ============================================================
 elif halaman == "📄 LKPD":
     st.markdown(f"""
     <div class="main-header">
-        <h1>📄 Lembar Kerja Peserta Didik (LKPD)</h1>
-        <p>{SUBJUDUL_LKPD}</p>
+        {badge_html}
+        <h1>📄 LKPD: {info_bab['nama']}</h1>
+        <p>Lembar Kerja Peserta Didik — {kelas_aktif}</p>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
-    <div class="materi-box">
-        <b>📋 Petunjuk Pengerjaan LKPD:</b><br>
-        1. Baca pratinjau LKPD di layar atau unduh filenya melalui tombol <b>Download LKPD</b>.<br>
-        2. Kerjakan secara mandiri/berkelompok sesuai instruksi Bapak/Ibu Guru.<br>
-        3. Gunakan menu <b>🧮 Kalkulator</b> jika ingin memverifikasi hasil perhitunganmu.<br>
-        4. Kumpulkan hasil pekerjaan sesuai arahan Guru.
-    </div>
-    """, unsafe_allow_html=True)
+    semua_lkpd = sorted([f for f in os.listdir(".") if f.lower().endswith((".pdf", ".docx", ".doc")) and adalah_file_lkpd(f)])
+    lkpd_bab = [f for f in semua_lkpd if file_cocok_dengan_bab(f, id_bab_aktif, kelas_aktif) is True]
+    lkpd_umum = [f for f in semua_lkpd if file_cocok_dengan_bab(f, id_bab_aktif, kelas_aktif) is None]
 
-    st.markdown("### 📥 Daftar File LKPD")
-
-    daftar_lkpd = sorted([
-        f for f in os.listdir(".")
-        if f.lower().endswith((".pdf", ".docx", ".doc")) and adalah_file_lkpd(f)
-    ])
-
+    daftar_lkpd = lkpd_bab + lkpd_umum
     if not daftar_lkpd:
-        st.info("ℹ️ Belum ada file LKPD yang diunggah (Pastikan nama file mengandung kata 'LKPD' atau 'Lembar Kerja').")
+        st.info(f"ℹ️ Belum ada file LKPD yang diunggah untuk bab {info_bab['nama']}.")
     else:
         for idx, nama_file in enumerate(daftar_lkpd):
-            with open(nama_file, "rb") as file_data:
-                isi_bytes = file_data.read()
-
-            ikon = "📕" if nama_file.lower().endswith(".pdf") else "📘"
-            col_nama, col_unduh = st.columns([3, 1])
-
-            with col_nama:
-                st.markdown(f"#### {ikon} {nama_file}")
-            with col_unduh:
-                st.download_button(
-                    label="⬇️ Download LKPD",
-                    data=isi_bytes,
-                    file_name=nama_file,
-                    mime="application/pdf" if nama_file.lower().endswith(".pdf") else "application/octet-stream",
-                    key=f"unduh_lkpd_{idx}",
-                    use_container_width=True,
-                    type="primary"
-                )
-
+            with open(nama_file, "rb") as fd:
+                isi_bytes = fd.read()
+            c_nm, c_dl = st.columns([3, 1])
+            c_nm.markdown(f"#### 📕 {nama_file}")
+            c_dl.download_button("⬇️ Download LKPD", isi_bytes, file_name=nama_file, key=f"dl_l_{id_bab_aktif}_{idx}", use_container_width=True, type="primary")
             if nama_file.lower().endswith(".pdf"):
                 with st.expander(f"👁️ Lihat Pratinjau {nama_file} di Layar", expanded=True):
                     tampilkan_pratinjau_pdf(isi_bytes)
@@ -596,340 +1012,83 @@ elif halaman == "📄 LKPD":
 
     if LINK_PENGUMPULAN.strip():
         st.markdown("### 📤 Pengumpulan Hasil Kerja Siswa")
-        st.markdown("Sudah selesai mengerjakan LKPD? Silakan kirim hasil pekerjaanmu melalui tombol di bawah ini:")
         st.link_button("📤 Kumpulkan Tugas / Jawaban LKPD", LINK_PENGUMPULAN, type="primary")
 
-# ============================================================
-# HALAMAN KALKULATOR
-# ============================================================
-elif halaman == "🧮 Kalkulator":
+elif halaman == "🧮 Kalkulator & Simulasi":
     st.markdown(f"""
     <div class="main-header">
-        <h1>🧮 Simulasi & Kalkulator Interaktif</h1>
-        <p>{SUBJUDUL_KALKULATOR}</p>
+        {badge_html}
+        <h1>🧮 Simulasi Interaktif: {info_bab['nama']}</h1>
+        <p>Eksplorasi Perhitungan & Visualisasi Grafik Secara Langsung</p>
     </div>
     """, unsafe_allow_html=True)
 
-    with st.sidebar:
-        st.markdown("---")
-        st.markdown("### 📥 Input Data Simulasi")
-        input_method = st.radio(
-            "Pilih cara input:",
-            ["Contoh data otomatis", "Ketik manual", "Upload file CSV"],
-            index=0, key="kalk_input"
-        )
-        data = []
-        if input_method == "Ketik manual":
-            raw = st.text_area(
-                "Masukkan angka (pisah koma/spasi):",
-                value="45, 50, 55, 60, 65, 70, 75, 48, 52, 58",
-                height=100, key="kalk_text"
-            )
-            raw = raw.replace(",", " ")
-            try:
-                data = [float(x) for x in raw.split() if x.strip()]
-            except:
-                st.error("⚠️ Format data tidak valid!")
-        elif input_method == "Contoh data otomatis":
-            contoh = st.selectbox("Pilih dataset:", [
-                "Nilai Ujian (30 siswa)",
-                "Tinggi Badan (25 siswa)",
-                "Berat Badan (20 siswa)",
-            ], key="kalk_contoh")
-            if "Nilai" in contoh:
-                data = [45,50,55,60,65,70,75,48,52,58,62,68,72,78,53,57,63,67,73,77,49,54,59,64,69,74,51,56,61,66]
-            elif "Tinggi" in contoh:
-                data = [150,155,158,160,162,163,165,165,167,168,170,170,172,173,175,155,160,163,166,169,171,174,152,157,164]
-            else:
-                data = [45,48,50,52,55,56,58,60,62,63,65,67,68,70,72,55,58,61,64,69]
-        elif input_method == "Upload file CSV":
-            uploaded = st.file_uploader("Upload file .csv", type=["csv"], key="kalk_upload")
-            if uploaded:
-                df_upload = pd.read_csv(uploaded)
-                col = st.selectbox("Pilih kolom:", df_upload.columns, key="kalk_col")
-                data = df_upload[col].dropna().tolist()
+    if id_bab_aktif == "statistika":
+        kalkulator_statistika()
+    elif id_bab_aktif == "geometri":
+        kalkulator_geometri()
+    elif id_bab_aktif == "peluang":
+        kalkulator_peluang()
+    elif id_bab_aktif == "eksponen":
+        kalkulator_eksponen()
+    elif id_bab_aktif == "barisan":
+        kalkulator_barisan()
+    elif id_bab_aktif == "trigonometri":
+        kalkulator_trigonometri()
+    elif id_bab_aktif == "matriks":
+        kalkulator_matriks()
+    elif id_bab_aktif == "transformasi":
+        kalkulator_transformasi()
+    elif id_bab_aktif == "turunan":
+        kalkulator_turunan()
 
-        st.markdown("---")
-        if data:
-            n = len(data)
-            k_default = math.ceil(1 + 3.322 * math.log10(n))
-            jumlah_kelas = st.slider(
-                "Jumlah kelas:", 3, 15, k_default, key="kalk_slider"
-            )
-            st.markdown(f"**n:** {n} | **Min:** {min(data)} | **Max:** {max(data)}")
-
-    if not data:
-        st.warning("👈 Masukkan data di panel kiri.")
-        st.stop()
-
-    df_tabel, panjang_kelas = buat_distribusi_frekuensi(data, jumlah_kelas)
-    mean_val = hitung_mean(df_tabel)
-    modus_val, Tb_mo, p_mo, d1, d2, row_mo = hitung_modus(df_tabel)
-    median_val, Tb_me, p_me, half_n, Fk_me, fi_me, row_me = hitung_median(df_tabel)
-
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown(f'<div class="metric-card"><h3>📈 Rata-rata</h3><div class="value">{mean_val:.2f}</div></div>', unsafe_allow_html=True)
-    with col2:
-        st.markdown(f'<div class="metric-card"><h3>🏔️ Modus</h3><div class="value">{modus_val:.2f}</div></div>', unsafe_allow_html=True)
-    with col3:
-        st.markdown(f'<div class="metric-card"><h3>📏 Median</h3><div class="value">{median_val:.2f}</div></div>', unsafe_allow_html=True)
-
-    st.markdown("---")
-
-    ktab1, ktab2, ktab3, ktab4, ktab5 = st.tabs([
-        "📋 Tabel", "📈 Mean", "🏔️ Modus", "📏 Median", "📊 Grafik"
-    ])
-
-    with ktab1:
-        st.markdown("### Tabel Distribusi Frekuensi")
-        df_display = df_tabel[['No', 'Kelas', 'Tepi', 'xi', 'fi', 'fi_xi', 'Fk']].copy()
-        st.dataframe(df_display, use_container_width=True, hide_index=True)
-
-    with ktab2:
-        st.markdown("### Perhitungan Rata-rata")
-        st.markdown('<div class="formula-box">x̄ = Σ(fi × xi) / Σfi</div>', unsafe_allow_html=True)
-        for _, row in df_tabel.iterrows():
-            st.markdown(f'<div class="step-box">Kelas <b>{row["Kelas"]}</b>: {row["fi"]} × {row["xi"]:.1f} = <b>{row["fi_xi"]:.1f}</b></div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="step-box"><b>x̄ = {df_tabel["fi_xi"].sum():.1f} / {df_tabel["fi"].sum()} = {mean_val:.2f}</b></div>', unsafe_allow_html=True)
-
-    with ktab3:
-        st.markdown("### Perhitungan Modus")
-        st.markdown('<div class="formula-box">Mo = Tb + p × (d1 / (d1 + d2))</div>', unsafe_allow_html=True)
-        st.markdown(f"""
-        <div class="step-box">
-        Kelas Modus: <b>{row_mo['Kelas']}</b> (fi = {row_mo['fi']})<br>
-        Tb = {Tb_mo:.1f} | p = {p_mo:.1f} | d1 = {d1} | d2 = {d2}<br><br>
-        Mo = {Tb_mo:.1f} + {p_mo:.1f} × ({d1} / {d1 + d2})<br>
-        <b>Mo = {modus_val:.2f}</b>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with ktab4:
-        st.markdown("### Perhitungan Median")
-        st.markdown('<div class="formula-box">Me = Tb + p × ((½n - Fk) / fi)</div>', unsafe_allow_html=True)
-        st.markdown(f"""
-        <div class="step-box">
-        Kelas Median: <b>{row_me['Kelas']}</b> (Fk pertama ≥ {half_n:.1f})<br>
-        Tb = {Tb_me:.1f} | p = {p_me:.1f} | ½n = {half_n:.1f} | Fk = {Fk_me} | fi = {fi_me}<br><br>
-        Me = {Tb_me:.1f} + {p_me:.1f} × (({half_n:.1f} - {Fk_me}) / {fi_me})<br>
-        <b>Me = {median_val:.2f}</b>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with ktab5:
-        st.markdown("### 📊 Visualisasi Grafik")
-        gc1, gc2 = st.columns(2)
-        with gc1:
-            fig_hist = px.bar(df_tabel, x='Kelas', y='fi', title="Histogram",
-                              color='fi', color_continuous_scale='Blues',
-                              labels={'fi': 'Frekuensi', 'Kelas': 'Kelas'})
-            fig_hist.update_layout(xaxis_tickangle=-30)
-            st.plotly_chart(fig_hist, use_container_width=True)
-        with gc2:
-            fig_ogive = go.Figure()
-            fig_ogive.add_trace(go.Scatter(
-                x=df_tabel['Tepi Atas'], y=df_tabel['Fk'],
-                mode='lines+markers', name='Ogive',
-                line=dict(color='#667eea', width=3), marker=dict(size=8)
-            ))
-            fig_ogive.update_layout(title="Ogive", xaxis_title="Tepi Atas", yaxis_title="Fk")
-            st.plotly_chart(fig_ogive, use_container_width=True)
-
-        fig_comp = go.Figure()
-        fig_comp.add_trace(go.Bar(
-            x=['Mean', 'Median', 'Modus'],
-            y=[mean_val, median_val, modus_val],
-            marker_color=['#667eea', '#764ba2', '#f093fb'],
-            text=[f"{mean_val:.2f}", f"{median_val:.2f}", f"{modus_val:.2f}"],
-            textposition='auto'
-        ))
-        fig_comp.update_layout(title="Perbandingan Mean, Median, Modus")
-        st.plotly_chart(fig_comp, use_container_width=True)
-
-# ============================================================
-# HALAMAN QUIZ
-# ============================================================
 elif halaman == "📝 Quiz":
     st.markdown(f"""
     <div class="main-header">
-        <h1>📝 Quiz Interaktif</h1>
-        <p>{SUBJUDUL_QUIZ}</p>
+        {badge_html}
+        <h1>📝 Quiz Evaluasi: {info_bab['nama']}</h1>
+        <p>Uji pemahamanmu pada materi {info_bab['nama']} ({kelas_aktif})</p>
     </div>
     """, unsafe_allow_html=True)
 
-    soal_bank = [
-        {
-            "soal": "Rumus rata-rata (mean) data kelompok adalah...",
-            "pilihan": [
-                "x̄ = Σfi / Σxi",
-                "x̄ = Σ(fi × xi) / Σfi",
-                "x̄ = Σfi × Σxi",
-                "x̄ = Σxi / n"
-            ],
-            "jawaban": 1,
-            "penjelasan": "Rata-rata data kelompok = jumlah (fi × xi) dibagi jumlah fi."
-        },
-        {
-            "soal": "Tepi bawah kelas 50 - 59 adalah...",
-            "pilihan": ["49", "49.5", "50", "50.5"],
-            "jawaban": 1,
-            "penjelasan": "Tepi bawah = batas bawah - 0.5 = 50 - 0.5 = 49.5"
-        },
-        {
-            "soal": "Titik tengah (xi) dari kelas 60 - 69 adalah...",
-            "pilihan": ["64", "64.5", "65", "65.5"],
-            "jawaban": 1,
-            "penjelasan": "xi = (60 + 69) / 2 = 129 / 2 = 64.5"
-        },
-        {
-            "soal": "Kelas modus adalah kelas yang memiliki...",
-            "pilihan": [
-                "Frekuensi terkecil",
-                "Frekuensi terbesar",
-                "Nilai tengah terbesar",
-                "Tepi bawah terkecil"
-            ],
-            "jawaban": 1,
-            "penjelasan": "Kelas modus = kelas dengan frekuensi tertinggi."
-        },
-        {
-            "soal": "Dalam rumus modus Mo = Tb + p × (d1/(d1+d2)), d1 adalah...",
-            "pilihan": [
-                "Selisih fi modus dengan fi kelas sesudahnya",
-                "Selisih fi modus dengan fi kelas sebelumnya",
-                "Frekuensi kumulatif",
-                "Panjang kelas"
-            ],
-            "jawaban": 1,
-            "penjelasan": "d1 = fi kelas modus - fi kelas sebelumnya."
-        },
-        {
-            "soal": "Median data kelompok terletak di kelas yang Fk-nya pertama kali...",
-            "pilihan": [
-                "Lebih dari n",
-                "Lebih dari atau sama dengan ½n",
-                "Sama dengan n",
-                "Kurang dari ½n"
-            ],
-            "jawaban": 1,
-            "penjelasan": "Kelas median = kelas pertama dengan Fk ≥ ½n."
-        },
-        {
-            "soal": "Jika n = 40, maka ½n untuk mencari median adalah...",
-            "pilihan": ["10", "15", "20", "25"],
-            "jawaban": 2,
-            "penjelasan": "½n = ½ × 40 = 20."
-        },
-        {
-            "soal": "Aturan Sturges untuk menentukan jumlah kelas adalah...",
-            "pilihan": [
-                "k = 1 + 3.322 × n",
-                "k = 1 + 3.322 × log(n)",
-                "k = n / 2",
-                "k = √n"
-            ],
-            "jawaban": 1,
-            "penjelasan": "Aturan Sturges: k = 1 + 3.322 × log(n)."
-        },
-        {
-            "soal": "Panjang kelas dihitung dengan rumus...",
-            "pilihan": [
-                "p = jangkauan × jumlah kelas",
-                "p = jangkauan / jumlah kelas",
-                "p = jumlah kelas / jangkauan",
-                "p = data max + data min"
-            ],
-            "jawaban": 1,
-            "penjelasan": "Panjang kelas = jangkauan (R) / jumlah kelas (k)."
-        },
-        {
-            "soal": "Frekuensi kumulatif (Fk) adalah...",
-            "pilihan": [
-                "Frekuensi terbesar",
-                "Jumlah frekuensi dari kelas pertama sampai kelas tertentu",
-                "Frekuensi kelas terakhir",
-                "Selisih frekuensi antar kelas"
-            ],
-            "jawaban": 1,
-            "penjelasan": "Fk = penjumlahan frekuensi secara bertahap dari kelas pertama."
-        }
-    ]
+    quiz_key_unik = f"{kelas_aktif}_{id_bab_aktif}"
+    daftar_soal = info_bab["quiz"]
+    sudah_submit = (st.session_state.quiz_submitted_key == quiz_key_unik)
 
-    random.seed(42)
-    soal_terpilih = random.sample(soal_bank, 5)
-
-    st.markdown("### 📋 Jawab 5 soal berikut ini!")
-    st.markdown("Pilih jawaban yang paling tepat, lalu klik **Cek Jawaban** di bawah.")
-    st.markdown("---")
-
-    for i, soal in enumerate(soal_terpilih):
-        st.markdown(f"""
-        <div class="quiz-box">
-        <b>Soal {i+1}:</b> {soal['soal']}
-        </div>
-        """, unsafe_allow_html=True)
-
-        jawaban_user = st.radio(
-            f"Pilihan jawaban soal {i+1}:",
-            soal['pilihan'],
-            key=f"soal_{i}",
-            index=None
-        )
-
-        if st.session_state.quiz_submitted:
-            if jawaban_user == soal['pilihan'][soal['jawaban']]:
-                st.markdown(f'<div class="quiz-benar">✅ Benar! {soal["penjelasan"]}</div>', unsafe_allow_html=True)
+    for i, soal in enumerate(daftar_soal):
+        st.markdown(f'<div class="quiz-box"><b>Soal {i+1}:</b> {soal["soal"]}</div>', unsafe_allow_html=True)
+        jwb = st.radio(f"Jawaban soal {i+1}:", soal["pilihan"], key=f"q_{quiz_key_unik}_{i}", index=None)
+        if sudah_submit:
+            benar_teks = soal["pilihan"][soal["jawaban"]]
+            if jwb == benar_teks:
+                st.markdown(f'<div class="quiz-benar">✅ <b>Benar!</b> {soal["penjelasan"]}</div>', unsafe_allow_html=True)
             else:
-                st.markdown(f'<div class="quiz-salah">❌ Salah. Jawaban yang benar: <b>{soal["pilihan"][soal["jawaban"]]}</b><br>{soal["penjelasan"]}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="quiz-salah">❌ <b>Kurang tepat.</b> Jawaban benar: <b>{benar_teks}</b><br>{soal["penjelasan"]}</div>', unsafe_allow_html=True)
 
-        st.markdown("---")
+    st.markdown("---")
+    b1, b2 = st.columns(2)
+    if b1.button("✅ Cek Skor Jawaban", type="primary", use_container_width=True):
+        skor = sum(
+            1 for i, s in enumerate(daftar_soal)
+            if st.session_state.get(f"q_{quiz_key_unik}_{i}") == s["pilihan"][s["jawaban"]]
+        )
+        st.session_state.quiz_score = skor
+        st.session_state.quiz_submitted_key = quiz_key_unik
+        st.rerun()
 
-    col_btn1, col_btn2 = st.columns(2)
-    with col_btn1:
-        if st.button("✅ Cek Jawaban", type="primary", use_container_width=True):
-            st.session_state.quiz_submitted = True
-            skor = 0
-            for i, soal in enumerate(soal_terpilih):
-                jawaban_user = st.session_state.get(f"soal_{i}", None)
-                if jawaban_user == soal['pilihan'][soal['jawaban']]:
-                    skor += 1
-            st.session_state.quiz_score = skor
-            st.rerun()
+    if b2.button("🔄 Ulangi Quiz Bab Ini", use_container_width=True):
+        st.session_state.quiz_submitted_key = ""
+        for i in range(len(daftar_soal)):
+            st.session_state.pop(f"q_{quiz_key_unik}_{i}", None)
+        st.rerun()
 
-    with col_btn2:
-        if st.button("🔄 Ulangi Quiz", use_container_width=True):
-            st.session_state.quiz_submitted = False
-            st.session_state.quiz_score = 0
-            st.session_state.quiz_answers = {}
-            st.rerun()
-
-    if st.session_state.quiz_submitted:
+    if sudah_submit:
         skor = st.session_state.quiz_score
-        total = len(soal_terpilih)
-        persen = (skor / total) * 100
-
-        if persen == 100:
-            emoji = "🏆"
-            pesan = "SEMPURNA! Kamu luar biasa!"
-        elif persen >= 80:
-            emoji = "🌟"
-            pesan = "Hebat! Kamu sudah sangat paham!"
-        elif persen >= 60:
-            emoji = "👍"
-            pesan = "Bagus! Terus belajar ya!"
-        elif persen >= 40:
-            emoji = "📖"
-            pesan = "Cukup baik. Coba baca lagi materinya."
-        else:
-            emoji = "💪"
-            pesan = "Jangan menyerah! Pelajari materinya lagi ya."
-
+        nilai = (skor / len(daftar_soal)) * 100
         st.markdown(f"""
-        <div class="metric-card" style="margin-top: 1rem;">
-            <h3>{emoji} Skor Quiz Kamu</h3>
-            <div class="value">{skor} / {total}</div>
-            <p style="font-size: 1.2rem;">{pesan}</p>
-            <p>Nilai: <b>{persen:.0f}</b> / 100</p>
+        <div class="metric-card">
+            <h3>🏆 Hasil Evaluasi {info_bab['nama']}</h3>
+            <div class="value">{nilai:.0f} / 100</div>
+            <p>Benar <b>{skor}</b> dari <b>{len(daftar_soal)}</b> soal</p>
         </div>
         """, unsafe_allow_html=True)
