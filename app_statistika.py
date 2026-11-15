@@ -16,11 +16,37 @@ from datetime import datetime
 # ============================================================
 PIN_GURU            = "1977"  # PIN Khusus Guru untuk menu Buat Soal Guru
 NAMA_APLIKASI       = "Media Pembelajaran Matematika"
-NAMA_GURU_SEKOLAH   = "Iyus Ruslan, ST., S.Pd"      # Contoh: "Oleh: Iyus Gani, S.Pd."
+NAMA_GURU_SEKOLAH   = "Iyus Ruslan, S.Pd"      # Contoh: "Oleh: Iyus Gani, S.Pd."
 KELAS_AWAL_INDEX    = 2       # 0 = Kelas 10, 1 = Kelas 11, 2 = Kelas 12
 
-LINK_PENGUMPULAN    = "https://forms.gle/Sr3tFKnaZnJ6Tsvf9"      # Isi link Google Form jika ada pengumpulan tugas/quiz
-LINK_VIDEO_YOUTUBE  = "https://www.youtube.com/watch?v=XQ8UJAMJcUQ&t=82s"      # Isi link YouTube jika ada video pembelajaran
+LINK_PENGUMPULAN    = "https://forms.gle/u8EPMoWynu5iXdcy5"      # Isi link Google Form jika ada pengumpulan tugas/quiz
+
+# ============================================================
+# KONFIGURASI VIDEO PEMBELAJARAN PER KELAS & PER BAB
+# Format: ("Nama Kelas", "id_bab"): "link YouTube"
+# Hanya isi link untuk kelas & bab yang memiliki video.
+# Kosongkan ("") atau hapus barisnya jika tidak ada video.
+# ============================================================
+LINK_VIDEO_YOUTUBE = {
+    # --- KELAS 10 ---
+    ("Kelas 10", "eksponen"):     "",
+    ("Kelas 10", "barisan"):      "",
+    ("Kelas 10", "trigonometri"): "",
+    ("Kelas 10", "statistika"):   "",
+    ("Kelas 10", "peluang"):      "",
+
+    # --- KELAS 11 ---
+    ("Kelas 11", "matriks"):      "",
+    ("Kelas 11", "transformasi"): "",
+    ("Kelas 11", "geometri"):     "",
+    ("Kelas 11", "statistika"):   "https://www.youtube.com/watch?v=XQ8UJAMJcUQ&t=82s",
+
+    # --- KELAS 12 ---
+    ("Kelas 12", "statistika"):   "",
+    ("Kelas 12", "geometri"):     "",
+    ("Kelas 12", "peluang"):      "",
+    ("Kelas 12", "turunan"):      "",
+}
 
 KURIKULUM_KELAS = {
     "Kelas 10": [
@@ -1100,9 +1126,11 @@ elif halaman == "📖 Materi":
     tabs_obj = st.tabs(judul_tabs)
 
     with tabs_obj[0]:
-        if LINK_VIDEO_YOUTUBE.strip():
+        # --- VIDEO: hanya tampil jika link diisi untuk kelas & bab ini ---
+        link_video_aktif = LINK_VIDEO_YOUTUBE.get((kelas_aktif, id_bab_aktif), "")
+        if link_video_aktif.strip():
             st.markdown("### 🎬 Video Pembelajaran")
-            st.video(LINK_VIDEO_YOUTUBE.strip())
+            st.video(link_video_aktif.strip())
             st.markdown("---")
 
         daftar_tampil = materi_bab + materi_umum
