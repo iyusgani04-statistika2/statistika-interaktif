@@ -19,33 +19,43 @@ NAMA_APLIKASI       = "Media Pembelajaran Matematika"
 NAMA_GURU_SEKOLAH   = "Iyus Ruslan, S.Pd"      # Contoh: "Oleh: Iyus Gani, S.Pd."
 KELAS_AWAL_INDEX    = 2       # 0 = Kelas 10, 1 = Kelas 11, 2 = Kelas 12
 
-LINK_PENGUMPULAN    = "https://forms.gle/u8EPMoWynu5iXdcy5"      # Isi link Google Form jika ada pengumpulan tugas/quiz
+LINK_PENGUMPULAN    = "https://forms.gle/NgoUmyXpceQECwni7"      # Isi link Google Form jika ada pengumpulan tugas/quiz
 
 # ============================================================
 # KONFIGURASI VIDEO PEMBELAJARAN PER KELAS & PER BAB
-# Format: ("Nama Kelas", "id_bab"): "link YouTube"
-# Hanya isi link untuk kelas & bab yang memiliki video.
-# Kosongkan ("") atau hapus barisnya jika tidak ada video.
+# Format: ("Nama Kelas", "id_bab"): ["link1", "link2", ...]
+# ⭐ SETIAP KELAS & BAB BISA PUNYA BANYAK VIDEO!
+#    Cukup tambahkan link baru ke dalam tanda kurung siku [...]
+#    Video lama TIDAK akan hilang — siswa bisa akses semua.
+#    Contoh menambah 2 video:
+#    ("Kelas 12", "statistika"): [
+#        "https://youtube.com/watch?v=VIDEO_1",
+#        "https://youtube.com/watch?v=VIDEO_2",
+#    ],
+#    Kosongkan dengan [] jika belum ada video.
 # ============================================================
 LINK_VIDEO_YOUTUBE = {
     # --- KELAS 10 ---
-    ("Kelas 10", "eksponen"):     "",
-    ("Kelas 10", "barisan"):      "",
-    ("Kelas 10", "trigonometri"): "",
-    ("Kelas 10", "statistika"):   "",
-    ("Kelas 10", "peluang"):      "",
+    ("Kelas 10", "eksponen"):     [],
+    ("Kelas 10", "barisan"):      [],
+    ("Kelas 10", "trigonometri"): [],
+    ("Kelas 10", "statistika"):   [],
+    ("Kelas 10", "peluang"):      [],
 
     # --- KELAS 11 ---
-    ("Kelas 11", "matriks"):      "",
-    ("Kelas 11", "transformasi"): "",
-    ("Kelas 11", "geometri"):     "",
-    ("Kelas 11", "statistika"):   "https://www.youtube.com/watch?v=XQ8UJAMJcUQ&t=82s",
+    ("Kelas 11", "matriks"):      [],
+    ("Kelas 11", "transformasi"): [],
+    ("Kelas 11", "geometri"):     [],
+    ("Kelas 11", "statistika"):   ["https://www.youtube.com/watch?v=XQ8UJAMJcUQ&t=82s",
+                                   "https://www.youtube.com/watch?v=1tQAn-wylgg",
+                                   "https://www.youtube.com/watch?v=9oP4zCpNOnY",
+                                  ],
 
     # --- KELAS 12 ---
-    ("Kelas 12", "statistika"):   "",
-    ("Kelas 12", "geometri"):     "",
-    ("Kelas 12", "peluang"):      "",
-    ("Kelas 12", "turunan"):      "",
+    ("Kelas 12", "statistika"):   [],
+    ("Kelas 12", "geometri"):     [],
+    ("Kelas 12", "peluang"):      [],
+    ("Kelas 12", "turunan"):      [],
 }
 
 KURIKULUM_KELAS = {
@@ -1126,11 +1136,15 @@ elif halaman == "📖 Materi":
     tabs_obj = st.tabs(judul_tabs)
 
     with tabs_obj[0]:
-        # --- VIDEO: hanya tampil jika link diisi untuk kelas & bab ini ---
-        link_video_aktif = LINK_VIDEO_YOUTUBE.get((kelas_aktif, id_bab_aktif), "")
-        if link_video_aktif.strip():
-            st.markdown("### 🎬 Video Pembelajaran")
-            st.video(link_video_aktif.strip())
+        # --- VIDEO: tampilkan SEMUA video untuk kelas & bab ini ---
+        daftar_video = LINK_VIDEO_YOUTUBE.get((kelas_aktif, id_bab_aktif), [])
+        # Filter hanya yang tidak kosong
+        daftar_video = [v.strip() for v in daftar_video if v and v.strip()]
+        if daftar_video:
+            st.markdown(f"### 🎬 Video Pembelajaran ({len(daftar_video)} Video)")
+            for no_video, link_vid in enumerate(daftar_video, start=1):
+                with st.expander(f"🎬 Video {no_video}", expanded=(no_video == 1)):
+                    st.video(link_vid)
             st.markdown("---")
 
         daftar_tampil = materi_bab + materi_umum
