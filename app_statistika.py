@@ -12,8 +12,8 @@ import base64
 # ============================================================
 # 1. PENGATURAN IDENTITAS PORTAL & URUTAN BAB PER KELAS
 # ============================================================
-NAMA_APLIKASI       = "Portal Pembelajaran Matematika"
-NAMA_GURU_SEKOLAH   = ""  # Contoh: "Oleh: Iyus Gani, S.Pd."
+NAMA_APLIKASI       = "Media Pembelajaran Matematika"
+NAMA_GURU_SEKOLAH   = "Iyus Ruslan, ST.,S.Pd"  # Contoh: "Oleh: Iyus Gani, S.Pd."
 KELAS_AWAL_INDEX    = 2   # 0 = Kelas 10, 1 = Kelas 11, 2 = Kelas 12
 
 LINK_PENGUMPULAN    = "https://forms.gle/4fmfyKSrZ5f3eva97"  # Isi link Google Form jika ada pengumpulan tugas
